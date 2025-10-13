@@ -1,0 +1,11 @@
+id_libro,titulo,autor,categoria,anio_publicacion
+1,Cien años de soledad,Gabriel García Márquez,Realismo mágico,1967
+2,Don Quijote de la Mancha,Miguel de Cervantes,Novela,1605
+3,1984,George Orwell,Ciencia ficción,1949
+4,El principito,Antoine de Saint-Exupéry,Fábula,1943
+5,Rayuela,Julio Cortázar,Realismo mágico,1963
+6,Crimen y castigo,Fiódor Dostoyevski,Drama,1866
+7,Orgullo y prejuicio,Jane Austen,Romance,1813
+8,La Odisea,Homero,Épica,800
+9,Fahrenheit 451,Ray Bradbury,Ciencia ficción,1953
+10,El amor en los tiempos del cólera,Gabriel García Márquez,Romance,1985
