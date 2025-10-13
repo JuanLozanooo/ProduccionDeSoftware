@@ -2,13 +2,15 @@ from typing import List
 from app.review import Review
 
 class Libro:
-    id_libro: int
-    titulo: str
-    autor: str
-    categoria: str
-    anio_publicacion: int
-    lista_reviews: List[Review] = []
-    calificacion_promedio: float = 0.0
+    lista_reviews = []
+    calificacion_promedio = 0.0
+
+    def __init__(self, id_libro: int, titulo: str, autor: str, categoria: str, anio_publicacion: int):
+        self.id_libro = id_libro
+        self.titulo = titulo
+        self.autor = autor
+        self.categoria = categoria
+        self.anio_publicacion = anio_publicacion
 
     def obtener_descripción(self) -> str:
         pass

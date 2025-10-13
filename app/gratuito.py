@@ -1,8 +1,6 @@
 from app.usuario import Usuario
 
-
 class Gratuito(Usuario):
-    # Métodos
     def leer_fragmento_libro(self) -> None:
         pass
 
