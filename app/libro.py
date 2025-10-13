@@ -1,4 +1,5 @@
 from typing import List
+from app.review import Review
 
 class Libro:
     id_libro: int
@@ -6,7 +7,7 @@ class Libro:
     autor: str
     categoria: str
     anio_publicacion: int
-    lista_reviews: List['Review'] = []
+    lista_reviews: List[Review] = []
     calificacion_promedio: float = 0.0
 
     def obtener_descripción(self) -> str:
