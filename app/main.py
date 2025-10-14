@@ -75,11 +75,6 @@ async def gratuito_leer_fragmento_libro(id_libro: int, session: AsyncSession = D
     g = Gratuito(id_usuario=0, rol=1, username="guest", email_usuario="guest@example.com", password="")
     return await g.leer_fragmento_libro(session, id_libro)
 
-@app.post("/gratuito/pasarAPremium", tags=["Gratuito"])
-async def gratuito_pasar_a_premium():
-    g = Gratuito(id_usuario=0, rol=1, username="guest", email_usuario="guest@example.com", password="")
-    return await g.pasar_a_premium()
-
 # ---------------------- UsuarioPago (Premium) ----------------------
 # Orden: leer_libro_completo, renovar_suscripcion, cancelar_suscripcion
 
@@ -88,19 +83,7 @@ async def premium_leer_libro_completo(id_libro: int, session: AsyncSession = Dep
     p = UsuarioPago(id_usuario=0, username="premium", email_usuario="premium@example.com", password="", tipo_suscripcion=1)
     return await p.leer_libro_completo(session, id_libro)
 
-@app.post("/usuarioPago/renovarSuscripcion", tags=["UsuarioPago"])
-async def premium_renovar_suscripcion():
-    p = UsuarioPago(id_usuario=0, username="premium", email_usuario="premium@example.com", password="", tipo_suscripcion=1)
-    return await p.renovar_suscripcion()
-
-@app.post("/usuarioPago/cancelarSuscripcion", tags=["UsuarioPago"])
-async def premium_cancelar_suscripcion():
-    p = UsuarioPago(id_usuario=0, username="premium", email_usuario="premium@example.com", password="", tipo_suscripcion=1)
-    return await p.cancelar_suscripcion()
-
-# ---------------------- Administrador ----------------------
-# Orden: crear_usuario, consultar_usuario, actualizar_usuario, eliminar_usuario, gestionar_estado_usuario,
-#        crear_libro, consultar_libro, actualizar_libro, eliminar_libro
+# En endpoints de Administrador, la lógica interna ya usa las tablas 'usuario' y 'libro' por los cambios de la clase.
 
 @app.post("/administrador/crearUsuario", tags=["Administrador"])
 async def admin_crear_usuario(datos: Dict[str, Any], session: AsyncSession = Depends(get_session)):

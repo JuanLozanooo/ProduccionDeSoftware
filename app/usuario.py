@@ -14,12 +14,12 @@ class Usuario:
 
     async def iniciar_sesion(self, session: AsyncSession) -> dict:
         """
-        Autentica por username y password contra la tabla usuarios.
+        Autentica por username y password contra la tabla usuario.
         Roles: 0=admin, 1=gratuito, 2=premium.
         """
         query = text(
             "SELECT id_usuario, rol, username, email_usuario, password, activo "
-            "FROM usuarios WHERE username = :username LIMIT 1"
+            "FROM usuario WHERE username = :username LIMIT 1"
         )
         result = await session.execute(query, {"username": self.username})
         row = result.first()
@@ -82,7 +82,7 @@ class Usuario:
     async def buscar_libro(self, session: AsyncSession, titulo: Optional[str] = None,
                            autor: Optional[str] = None, categoria: Optional[str] = None) -> Optional[Libro]:
         """
-        Busca un libro por filtros simples en la tabla libros y retorna un objeto Libro (el primero que coincida).
+        Busca un libro por filtros simples en la tabla libro y retorna un objeto Libro (el primero que coincida).
         """
         clauses = []
         params = {}
@@ -101,7 +101,7 @@ class Usuario:
             where = "WHERE " + " AND ".join(clauses)
 
         query = text(
-            f"SELECT id_libro, titulo, autor, categoria, anio_publicacion FROM libros {where} ORDER BY id_libro LIMIT 1"
+            f"SELECT id_libro, titulo, autor, categoria, anio_publicacion FROM libro {where} ORDER BY id_libro LIMIT 1"
         )
         result = await session.execute(query, params)
         row = result.first()

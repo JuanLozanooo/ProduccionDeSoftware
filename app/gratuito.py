@@ -7,7 +7,7 @@ class Gratuito(Usuario):
         """
         Devuelve un fragmento simulado del libro (por ejemplo, las primeras líneas de la descripción).
         """
-        query = text("SELECT id_libro, titulo, autor, categoria, anio_publicacion FROM libros WHERE id_libro = :id")
+        query = text("SELECT id_libro, titulo, autor, categoria, anio_publicacion FROM libro WHERE id_libro = :id")
         result = await session.execute(query, {"id": id_libro})
         row = result.first()
         if not row:

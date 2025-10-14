@@ -9,7 +9,7 @@ class UsuarioPago(Usuario):
         self.tipo_suscripcion = tipo_suscripcion
 
     async def leer_libro_completo(self, session: AsyncSession, id_libro: int) -> dict:
-        query = text("SELECT id_libro, titulo, autor, categoria, anio_publicacion FROM libros WHERE id_libro = :id")
+        query = text("SELECT id_libro, titulo, autor, categoria, anio_publicacion FROM libro WHERE id_libro = :id")
         result = await session.execute(query, {"id": id_libro})
         row = result.first()
         if not row:
