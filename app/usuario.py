@@ -14,22 +14,23 @@ class Usuario:
 
     async def iniciar_sesion(self, session: AsyncSession) -> dict:
         """
-        Verifica credenciales contra la tabla usuarios y retorna un menú/alcance según rol.
+        Autentica por username y password contra la tabla usuarios.
         Roles: 0=admin, 1=gratuito, 2=premium.
         """
         query = text(
             "SELECT id_usuario, rol, username, email_usuario, password, activo "
-            "FROM usuarios WHERE email_usuario = :email LIMIT 1"
+            "FROM usuarios WHERE username = :username LIMIT 1"
         )
-        result = await session.execute(query, {"email": self.email_usuario})
+        result = await session.execute(query, {"username": self.username})
         row = result.first()
         if not row or str(row.password) != str(self.password):
             return {"autenticado": False, "mensaje": "Credenciales inválidas"}
 
-        # Actualiza el estado interno desde BD por si difiere
+        # Actualiza estado interno con los datos de la BD
         self.id_usuario = row.id_usuario
         self.rol = row.rol
         self.username = row.username
+        self.email_usuario = row.email_usuario
         self.activo = bool(row.activo)
 
         if not self.activo:
