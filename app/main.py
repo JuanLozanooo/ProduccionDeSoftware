@@ -73,13 +73,13 @@ async def usuario_buscar_libro(
 @app.post("/usuario/cambiarUsername", tags=["Usuario"])
 async def usuario_cambiar_username(nuevo_username: str):
     require_login()
-    usuario_actual.cambiar_username(nuevo_username)
+    await usuario_actual.cambiar_username(nuevo_username)
     return {"username": usuario_actual.username}
 
 @app.post("/usuario/cambiarContrasena", tags=["Usuario"])
 async def usuario_cambiar_contrasena(nueva_contrasena: str):
     require_login()
-    usuario_actual.cambiar_contrasena(nueva_contrasena)
+    await usuario_actual.cambiar_contrasena(nueva_contrasena)
     return {"contrasena_actualizada": True}
 
 # ---------------------- Gratuito ----------------------

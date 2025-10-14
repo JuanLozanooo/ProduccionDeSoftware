@@ -13,10 +13,6 @@ class Usuario:
         self.activo = activo
 
     async def iniciar_sesion(self, session: AsyncSession) -> dict:
-        """
-        Autentica por username y password contra la tabla usuario.
-        Roles: 0=admin, 1=gratuito, 2=premium.
-        """
         query = text(
             "SELECT id_usuario, rol, username, email_usuario, password, activo "
             "FROM usuario WHERE username = :username LIMIT 1"
@@ -76,14 +72,11 @@ class Usuario:
         }
 
     async def cerrar_sesion(self) -> None:
-        # En este contexto sin gestión de tokens, no hay acción en BD; placeholder lógico.
+        #la implementacion está en el main
         return None
 
     async def buscar_libro(self, session: AsyncSession, titulo: Optional[str] = None,
                            autor: Optional[str] = None, categoria: Optional[str] = None) -> Optional[Libro]:
-        """
-        Busca un libro por filtros simples en la tabla libro y retorna un objeto Libro (el primero que coincida).
-        """
         clauses = []
         params = {}
         if titulo:
@@ -115,8 +108,18 @@ class Usuario:
             anio_publicacion=int(row.anio_publicacion),
         )
 
-    def cambiar_username(self, nuevo_username: str) -> None:
+    async def cambiar_username(self, session: AsyncSession, nuevo_username: str) -> None:
+        await session.execute(
+            text("UPDATE usuario SET username = :nuevo WHERE id_usuario = :id"),
+            {"nuevo": nuevo_username, "id": self.id_usuario}
+        )
+        await session.commit()
         self.username = nuevo_username
 
-    def cambiar_contrasena(self, nueva_contrasena: str) -> None:
+    async def cambiar_contrasena(self, session: AsyncSession, nueva_contrasena: str) -> None:
+        await session.execute(
+            text("UPDATE usuario SET password = :pwd WHERE id_usuario = :id"),
+            {"pwd": nueva_contrasena, "id": self.id_usuario}
+        )
+        await session.commit()
         self.password = nueva_contrasena
