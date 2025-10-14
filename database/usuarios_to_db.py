@@ -5,6 +5,7 @@ import os
 
 class Usuario(SQLModel, table=True):
     id_usuario: Optional[int] = Field(default=None, primary_key=True)
+    rol: int = Field(..., ge=0, le=2)
     username: str = Field(..., min_length=3, max_length=50)
     email_usuario: str = Field(..., min_length=5, max_length=100)
     password: str = Field(..., min_length=3, max_length=100)

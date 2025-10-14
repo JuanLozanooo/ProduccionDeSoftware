@@ -2,8 +2,9 @@ from typing import Optional
 from app.libro import Libro
 
 class Usuario:
-    def __init__(self, id_usuario: int, username: str, email_usuario: str, password: str, activo: bool = True):
+    def __init__(self, id_usuario: int, rol: int, username: str, email_usuario: str, password: str, activo: bool = True):
         self.id_usuario = id_usuario
+        self.rol = rol
         self.username = username
         self.email_usuario = email_usuario
         self.password = password
