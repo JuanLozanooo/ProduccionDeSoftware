@@ -11,7 +11,8 @@ class Review:
         self.calificacion = calificacion
 
     def subir_review(self) -> None:
-        pass
+        Review.calificaciones_usuarios.append(float(self.calificacion))
 
     def eliminar_review(self) -> None:
-        pass
+        if Review.calificaciones_usuarios:
+            Review.calificaciones_usuarios.pop()
