@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
 from typing import Optional, Dict, Any
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from database.connection_db import get_session
+from contextlib import asynccontextmanager
+from database.connection_db import get_session, init_db
 from app.usuario import Usuario
 from app.gratuito import Gratuito
 from app.premium import UsuarioPago
@@ -16,10 +16,19 @@ from datetime import date, timedelta
 # Estado global de sesión
 usuario_actual: Optional[Usuario] = None
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Iniciando aplicación y creando tablas si es necesario...")
+    await init_db()
+    print("Tablas listas.")
+    yield
+    print("Cerrando aplicación.")
+
 app = FastAPI(
-    title="Modelo de Biblioteca Digital con Acceso Diferenciado",
-    description="API que simula el manejo de una biblioteca digital",
-    version="La mejor hasta la fecha"
+    title="Modelo de Biblioteca Digital",
+    description="API que simula el manejo de una biblioteca digital.",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Utilidades de autorización basadas en usuario_actual

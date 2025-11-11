@@ -11,10 +11,11 @@ class Usuario(SQLModel, table=True):
     password: str = Field(..., min_length=3, max_length=100)
     activo: bool = Field(default=True)
 
-DATABASE_URL = "postgresql://ucqqnav94roh5id44ztb:1QrDned1fmQUTycUL6YZhEY58oJhpn@bgkccaor3afzq4gqzc6c-postgresql.services.clever-cloud.com:50013/bgkccaor3afzq4gqzc6c"
+DATABASE_URL = "postgresql://adminjuan:Juan893966@fastapi-juan-db.postgres.database.azure.com:5432/postgres"
 engine = create_engine(DATABASE_URL)
 
 def create_table():
+    SQLModel.metadata.drop_all(engine) # Borra todas las tablas
     SQLModel.metadata.create_all(engine)
 
 def insert_users_from_csv(csv_path: str):
