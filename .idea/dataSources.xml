@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="bgkccaor3afzq4gqzc6c@bgkccaor3afzq4gqzc6c-postgresql.services.clever-cloud.com" uuid="9637919d-c9ba-434b-80f9-1acdbb030495">
+    <data-source source="LOCAL" name="postgres@fastapi-juan-db.postgres.database.azure.com" uuid="9637919d-c9ba-434b-80f9-1acdbb030495">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://bgkccaor3afzq4gqzc6c-postgresql.services.clever-cloud.com:50013/bgkccaor3afzq4gqzc6c</jdbc-url>
+      <jdbc-url>jdbc:postgresql://fastapi-juan-db.postgres.database.azure.com:5432/postgres</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
