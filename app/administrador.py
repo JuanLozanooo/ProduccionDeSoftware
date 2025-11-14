@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.libro import Libro
 from app.usuario import Usuario
+from app.design_patterns import DesignPatterns
 
 class Administrador:
     def __init__(self, id_admin: int, username: str, email: str, password: str):
@@ -50,10 +51,26 @@ class Administrador:
         await session.execute(query, params)
         await session.commit()
 
-    async def eliminar_usuario(self, session: AsyncSession, id_usuario: int) -> None:
+    async def eliminar_usuario(self, session: AsyncSession, id_usuario: int) -> bool:
+        # Memento: Guardar el estado del usuario antes de eliminarlo
+        memento_creado = await DesignPatterns.crear_memento_usuario(session, id_usuario)
+        
+        if not memento_creado:
+            await session.rollback()
+            print(f"No se pudo crear el memento. La eliminación del usuario {id_usuario} ha sido cancelada.")
+            return False
+
+        # Proceder con la eliminación
         query = text("DELETE FROM usuario WHERE id_usuario = :id")
-        await session.execute(query, {"id": id_usuario})
-        await session.commit()
+        try:
+            await session.execute(query, {"id": id_usuario})
+            await session.commit()
+            print(f"Usuario {id_usuario} eliminado correctamente.")
+            return True
+        except Exception as e:
+            await session.rollback()
+            print(f"Error al eliminar el usuario {id_usuario} después de crear el memento: {e}")
+            return False
 
     async def gestionar_estado_usuario(self, session: AsyncSession, id_usuario: int, activo: bool) -> None:
         query = text("UPDATE usuario SET activo = :activo WHERE id_usuario = :id")
