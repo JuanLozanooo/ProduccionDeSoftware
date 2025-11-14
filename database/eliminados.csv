@@ -1,0 +1,4 @@
+id_usuario,rol,username,email_usuario,password,activo,mes_suscripcion
+1,1,roberto88,roberto@example.com,pass_rober,False,0
+2,2,carla_z,carla.z@example.com,carla123,False,3
+3,1,diana_g,diana.g@example.com,diana_pass,False,0
