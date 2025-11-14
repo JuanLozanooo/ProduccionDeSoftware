@@ -1,25 +1,39 @@
-from typing import List
+from typing import Optional, TYPE_CHECKING
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import text
+
+if TYPE_CHECKING:
+    from app.libro import Libro
+    from app.usuario import Usuario
 
 class Review:
-    calificaciones_usuarios: List[float] = []
-
-    def __init__(self, id_review: int, usuario_id: int, libro_id: int, comentario: str, calificacion: int):
+    def __init__(self, comentario: str, id_review: Optional[int] = None):
         self.id_review = id_review
-        self.usuario_id = usuario_id
-        self.libro_id = libro_id
         self.comentario = comentario
-        self.calificacion = calificacion
+        self.usuario_id: Optional[int] = None
+        self.libro_id: Optional[int] = None
 
-    def subir_review(self) -> None:
-        # Mantener registro histórico de calificaciones
-        Review.calificaciones_usuarios.append(float(self.calificacion))
-        # Conectar con Libro: agregar esta review a la lista de reviews del libro
-        from app.libro import Libro
-        libro_tmp = next((l for l in getattr(Libro, "lista_reviews", []) if getattr(l, "libro_id", None) == self.libro_id), None)
-        # Siempre delegar al método del modelo Libro (crea el contenedor temporal si no hay libros cargados)
-        lib = Libro(self.libro_id, "", "", "", 0)
-        lib.agregar_review(self)
+    async def subir_review(self, session: AsyncSession, usuario: "Usuario", libro: "Libro") -> None:
+        self.usuario_id = usuario.id_usuario
+        self.libro_id = libro.id_libro
 
-    def eliminar_review(self) -> None:
-        if Review.calificaciones_usuarios:
-            Review.calificaciones_usuarios.pop()
+        query = text(
+            "INSERT INTO review (usuario_id, libro_id, comentario) "
+            "VALUES (:uid, :lid, :com) "
+            "RETURNING id_review"
+        )
+
+        params = {
+            "uid": self.usuario_id,
+            "lid": self.libro_id,
+            "com": self.comentario
+        }
+
+        try:
+            result = await session.execute(query, params)
+            new_id = result.scalar_one()
+            self.id_review = new_id
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            print(f"Error al guardar review en la BD: {e}")

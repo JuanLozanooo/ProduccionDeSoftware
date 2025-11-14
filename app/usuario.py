@@ -3,18 +3,21 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy import text
 from app.libro import Libro
 
+
 class Usuario:
-    def __init__(self, id_usuario: int, rol: int, username: str, email_usuario: str, password: str, activo: bool = True):
+    def __init__(self, id_usuario: int, rol: int, username: str, email_usuario: str, password: str, activo: bool = True,
+                 mes_suscripcion: int = 0):
         self.id_usuario = id_usuario
         self.rol = rol
         self.username = username
         self.email_usuario = email_usuario
         self.password = password
         self.activo = activo
+        self.mes_suscripcion = mes_suscripcion
 
     async def iniciar_sesion(self, session: AsyncSession) -> dict:
         query = text(
-            "SELECT id_usuario, rol, username, email_usuario, password, activo "
+            "SELECT id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion "
             "FROM usuario WHERE username = :username LIMIT 1"
         )
         result = await session.execute(query, {"username": self.username})
@@ -22,12 +25,12 @@ class Usuario:
         if not row or str(row.password) != str(self.password):
             return {"autenticado": False, "mensaje": "Credenciales inválidas"}
 
-        # Actualiza estado interno con los datos de la BD
         self.id_usuario = row.id_usuario
         self.rol = row.rol
         self.username = row.username
         self.email_usuario = row.email_usuario
         self.activo = bool(row.activo)
+        self.mes_suscripcion = int(row.mes_suscripcion)
 
         if not self.activo:
             return {"autenticado": False, "mensaje": "Usuario inactivo"}
@@ -66,14 +69,15 @@ class Usuario:
                 "id_usuario": self.id_usuario,
                 "rol": self.rol,
                 "username": self.username,
-                "email_usuario": self.email_usuario
+                "email_usuario": self.email_usuario,
+                "mes_suscripcion": self.mes_suscripcion
             },
             "menu_habilitado": menu
         }
 
-    async def cerrar_sesion(self) -> None:
-        #la implementacion está en el main
-        return None
+    async def cerrar_sesion(self) -> dict:
+        """ Cierra la sesión del usuario. """
+        return {"mensaje": "Sesión cerrada correctamente"}
 
     async def buscar_libro(self, session: AsyncSession, titulo: Optional[str] = None,
                            autor: Optional[str] = None, categoria: Optional[str] = None) -> Optional[Libro]:
@@ -108,18 +112,22 @@ class Usuario:
             anio_publicacion=int(row.anio_publicacion),
         )
 
-    async def cambiar_username(self, session: AsyncSession, nuevo_username: str) -> None:
+    async def cambiar_username(self, session: AsyncSession, nuevo_username: str) -> dict:
+        """ Cambia el nombre de usuario. """
         await session.execute(
             text("UPDATE usuario SET username = :nuevo WHERE id_usuario = :id"),
             {"nuevo": nuevo_username, "id": self.id_usuario}
         )
         await session.commit()
         self.username = nuevo_username
+        return {"username": self.username}
 
-    async def cambiar_contrasena(self, session: AsyncSession, nueva_contrasena: str) -> None:
+    async def cambiar_contrasena(self, session: AsyncSession, nueva_contrasena: str) -> dict:
+        """ Cambia la contraseña del usuario. """
         await session.execute(
             text("UPDATE usuario SET password = :pwd WHERE id_usuario = :id"),
             {"pwd": nueva_contrasena, "id": self.id_usuario}
         )
         await session.commit()
         self.password = nueva_contrasena
+        return {"contrasena_actualizada": True}
