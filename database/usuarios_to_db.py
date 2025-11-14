@@ -10,12 +10,12 @@ class Usuario(SQLModel, table=True):
     email_usuario: str = Field(..., min_length=5, max_length=100)
     password: str = Field(..., min_length=3, max_length=100)
     activo: bool = Field(default=True)
+    mes_suscripcion: int = Field(default=0)
 
 DATABASE_URL = "postgresql://adminjuan:Juan893966@fastapi-juan-db.postgres.database.azure.com:5432/postgres"
 engine = create_engine(DATABASE_URL)
 
 def create_table():
-    SQLModel.metadata.drop_all(engine) # Borra todas las tablas
     SQLModel.metadata.create_all(engine)
 
 def insert_users_from_csv(csv_path: str):
