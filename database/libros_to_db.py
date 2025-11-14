@@ -8,6 +8,7 @@ class Libro(SQLModel, table=True):
     autor: str = Field(..., min_length=1, max_length=100)
     categoria: str = Field(..., min_length=1, max_length=100)
     anio_publicacion: int = Field(..., ge=0, le=2025)
+    sinopsis: str = Field(..., min_length=1)
 
 DATABASE_URL = "postgresql://adminjuan:Juan893966@fastapi-juan-db.postgres.database.azure.com:5432/postgres"
 engine = create_engine(DATABASE_URL)

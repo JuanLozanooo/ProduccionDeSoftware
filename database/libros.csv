@@ -1,11 +1,11 @@
-id_libro,titulo,autor,categoria,anio_publicacion
-1,Cien años de soledad,Gabriel García Márquez,Realismo mágico,1967
-2,Don Quijote de la Mancha,Miguel de Cervantes,Novela,1605
-3,1984,George Orwell,Ciencia ficción,1949
-4,El principito,Antoine de Saint-Exupéry,Fábula,1943
-5,Rayuela,Julio Cortázar,Realismo mágico,1963
-6,Crimen y castigo,Fiódor Dostoyevski,Drama,1866
-7,Orgullo y prejuicio,Jane Austen,Romance,1813
-8,La Odisea,Homero,Épica,800
-9,Fahrenheit 451,Ray Bradbury,Ciencia ficción,1953
-10,El amor en los tiempos del cólera,Gabriel García Márquez,Romance,1985
+id_libro,titulo,autor,categoria,anio_publicacion,sinopsis
+1,Cien años de soledad,Gabriel García Márquez,Realismo mágico,1967,"La novela narra la historia de la familia Buendía a lo largo de varias generaciones en el mítico pueblo de Macondo. Entre hechos mágicos, tragedias, amores imposibles y destinos repetidos, la obra explora la soledad humana y el peso del pasado sobre cada uno de sus personajes."
+2,Don Quijote de la Mancha,Miguel de Cervantes,Novela,1605,"Un hidalgo obsesionado con los libros de caballería pierde el juicio y decide convertirse en caballero andante. Acompañado por su fiel escudero Sancho Panza, vive aventuras que mezclan realidad y fantasía mientras intenta defender la justicia, dando lugar a situaciones profundas y cómicas."
+3,1984,George Orwell,Ciencia ficción,1949,"En un mundo dominado por un régimen totalitario que controla cada aspecto de la vida, Winston Smith trabaja reescribiendo la historia para el Partido. Cansado de la manipulación constante, empieza a cuestionar el sistema y lucha contra la opresión, sabiendo que la libertad tiene un costo enorme."
+4,El principito,Antoine de Saint-Exupéry,Fábula,1943,"Un piloto perdido en el desierto conoce a un pequeño viajero de otro planeta. A través de relatos sencillos pero profundos, el principito comparte enseñanzas sobre el amor, la amistad, la pérdida y la importancia de mirar con el corazón y no solo con los ojos."
+5,Rayuela,Julio Cortázar,Realismo mágico,1963,"La historia sigue a Horacio Oliveira entre París y Buenos Aires, explorando su relación con la Maga y su búsqueda del sentido de la existencia. La novela ofrece múltiples caminos de lectura y mezcla reflexiones filosóficas, emociones intensas y una estructura experimental que desafía las normas literarias."
+6,Crimen y castigo,Fiódor Dostoyevski,Drama,1866,"Raskólnikov, un estudiante empobrecido, comete un asesinato creyendo que puede justificarlo con una teoría moral personal. Sin embargo, la culpa lo consume y lo lleva a enfrentar una lucha interna entre el remordimiento, la justicia y la posibilidad de redención."
+7,Orgullo y prejuicio,Jane Austen,Romance,1813,"Elizabeth Bennet y el orgulloso Mr. Darcy deben superar malentendidos, juicios equivocados y presiones sociales para descubrir sus verdaderos sentimientos. La novela explora las relaciones humanas, la familia y las apariencias en la sociedad inglesa del siglo XIX."
+8,La Odisea,Homero,Épica,800,"El héroe griego Odiseo emprende un largo viaje de regreso a Ítaca tras la guerra de Troya. Enfrenta criaturas míticas, desafíos impuestos por los dioses y tentaciones que ponen a prueba su astucia y su determinación. Mientras tanto, su familia lo espera resistiendo el paso del tiempo y la incertidumbre."
+9,Fahrenheit 451,Ray Bradbury,Ciencia ficción,1953,"En un futuro donde los libros están prohibidos y los bomberos se encargan de quemarlos, Guy Montag empieza a cuestionar su rol en esta sociedad controlada por la tecnología y la superficialidad. Su despertar interior lo lleva a rebelarse contra un sistema que teme el pensamiento crítico."
+10,El amor en los tiempos del cólera,Gabriel García Márquez,Romance,1985,"Florentino Ariza y Fermina Daza viven una historia de amor marcada por la distancia, los celos y el paso del tiempo. Tras más de medio siglo de vidas separadas, se reencuentran en la vejez para descubrir que el amor, incluso tras muchas heridas, puede renacer con fuerza inesperada."
