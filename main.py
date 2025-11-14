@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.responses import HTMLResponse
 from typing import Optional, Dict, Any
 from sqlmodel.ext.asyncio.session import AsyncSession
 from contextlib import asynccontextmanager
 from database.connection_db import get_session, init_db
+from fastapi.templating import Jinja2Templates
+import os
 from app.usuario import Usuario
 from app.gratuito import Gratuito
 from app.premium import UsuarioPago
@@ -43,9 +45,12 @@ def require_role(*roles: int):
 
 # ---------------------- Sistema ----------------------
 
-@app.get("/", response_class=HTMLResponse, tags=["Sistema"])
-async def root():
-    return "<h1>Biblioteca Digital</h1><p>Bienvenido</p>"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+@app.get("/", response_class=HTMLResponse, tags=["Página Principal"])
+async def root(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
 
 # ---------------------- Usuario ----------------------
 # Orden: iniciar_sesion, cerrar_sesion, buscar_libro, cambiar_username, cambiar_contrasena
@@ -65,8 +70,12 @@ async def usuario_cerrar_sesion():
     global usuario_actual
     if usuario_actual is None:
         raise HTTPException(status_code=400, detail="No hay sesión activa")
+    
+    resultado = await usuario_actual.cerrar_sesion()
+    
     usuario_actual = None
-    return {"mensaje": "Sesión cerrada correctamente"}
+    
+    return resultado
 
 @app.get("/usuario/buscarLibro", tags=["Usuario"])
 async def usuario_buscar_libro(
@@ -77,53 +86,56 @@ async def usuario_buscar_libro(
 ):
     require_login()
     libro = await usuario_actual.buscar_libro(session, titulo=titulo, autor=autor, categoria=categoria)
-    return {"resultado": libro.__dict__ if libro else None, "descripcion": libro.obtener_descripción() if libro else None}
+    if not libro:
+        return {"resultado": None, "descripcion": "No se encontraron libros con esos criterios."}
+    
+    return {
+        "resultado": libro.__dict__,
+        "descripcion": libro.obtener_descripción()
+    }
 
 @app.post("/usuario/cambiarUsername", tags=["Usuario"])
-async def usuario_cambiar_username(nuevo_username: str):
+async def usuario_cambiar_username(nuevo_username: str, session: AsyncSession = Depends(get_session)):
     require_login()
-    await usuario_actual.cambiar_username(nuevo_username)
-    return {"username": usuario_actual.username}
+    return await usuario_actual.cambiar_username(session, nuevo_username)
 
 @app.post("/usuario/cambiarContrasena", tags=["Usuario"])
-async def usuario_cambiar_contrasena(nueva_contrasena: str):
+async def usuario_cambiar_contrasena(nueva_contrasena: str, session: AsyncSession = Depends(get_session)):
     require_login()
-    await usuario_actual.cambiar_contrasena(nueva_contrasena)
-    return {"contrasena_actualizada": True}
+    return await usuario_actual.cambiar_contrasena(session, nueva_contrasena)
 
 # ---------------------- Gratuito ----------------------
 # Orden: leer_fragmento_libro, pasar_a_premium
 
 @app.get("/gratuito/leerFragmentoLibro/{id_libro}", tags=["Gratuito"])
 async def gratuito_leer_fragmento_libro(id_libro: int, session: AsyncSession = Depends(get_session)):
-    require_role(1, 0)  # 1=gratuito, 0=admin (admin puede probar cualquier endpoint)
-    # Instanciar como Gratuito usando datos de sesión
+    require_role(1, 0)
     g = Gratuito(id_usuario=usuario_actual.id_usuario, rol=usuario_actual.rol, username=usuario_actual.username, email_usuario=usuario_actual.email_usuario, password=usuario_actual.password)
     return await g.leer_fragmento_libro(session, id_libro)
 
 @app.post("/gratuito/pasarAPremium", tags=["Gratuito"])
-async def gratuito_pasar_a_premium():
+async def gratuito_pasar_a_premium(session: AsyncSession = Depends(get_session)):
     require_role(1, 0)
     g = Gratuito(id_usuario=usuario_actual.id_usuario, rol=usuario_actual.rol, username=usuario_actual.username, email_usuario=usuario_actual.email_usuario, password=usuario_actual.password)
-    return await g.pasar_a_premium()
+    return await g.pasar_a_premium(session)
 
 # ---------------------- UsuarioPago (Premium) ----------------------
 # Orden: leer_libro_completo, renovar_suscripcion, cancelar_suscripcion
 
 @app.get("/usuarioPago/leerLibroCompleto/{id_libro}", tags=["UsuarioPago"])
 async def premium_leer_libro_completo(id_libro: int, session: AsyncSession = Depends(get_session)):
-    require_role(2, 0)  # 2=premium, 0=admin
+    require_role(2, 0)
     p = UsuarioPago(id_usuario=usuario_actual.id_usuario, username=usuario_actual.username, email_usuario=usuario_actual.email_usuario, password=usuario_actual.password, tipo_suscripcion=1, activo=usuario_actual.activo)
     return await p.leer_libro_completo(session, id_libro)
 
 @app.post("/usuarioPago/renovarSuscripcion", tags=["UsuarioPago"])
-async def premium_renovar_suscripcion():
+async def premium_renovar_suscripcion(session: AsyncSession = Depends(get_session)):
     require_role(2, 0)
     p = UsuarioPago(id_usuario=usuario_actual.id_usuario, username=usuario_actual.username, email_usuario=usuario_actual.email_usuario, password=usuario_actual.password, tipo_suscripcion=1, activo=usuario_actual.activo)
     return await p.renovar_suscripcion()
 
 @app.post("/usuarioPago/cancelarSuscripcion", tags=["UsuarioPago"])
-async def premium_cancelar_suscripcion():
+async def premium_cancelar_suscripcion(session: AsyncSession = Depends(get_session)):
     require_role(2, 0)
     p = UsuarioPago(id_usuario=usuario_actual.id_usuario, username=usuario_actual.username, email_usuario=usuario_actual.email_usuario, password=usuario_actual.password, tipo_suscripcion=1, activo=usuario_actual.activo)
     return await p.cancelar_suscripcion()
@@ -222,7 +234,7 @@ async def libro_obtener_promedio(id_libro: int):
 
 @app.post("/libro/agregarReview", tags=["Libro"])
 async def libro_agregar_review(id_libro: int, comentario: str, calificacion: int):
-    require_role(2, 0)  # Solo premium o admin pueden reseñar desde este endpoint de libro
+    require_role(2, 0)
     r = Review(
         id_review=len(Review.calificaciones_usuarios) + 1,
         usuario_id=usuario_actual.id_usuario,
@@ -230,8 +242,8 @@ async def libro_agregar_review(id_libro: int, comentario: str, calificacion: int
         comentario=comentario,
         calificacion=calificacion
     )
-    r.subir_review()
     l = Libro(id_libro=id_libro, titulo="", autor="", categoria="", anio_publicacion=0)
+    l.agregar_review(r)
     return {"mensaje": "Review agregada", "promedio": l.obtener_promedio_calificaciones([])}
 
 @app.get("/libro/mostrarReviews", tags=["Libro"])
@@ -245,7 +257,7 @@ async def libro_mostrar_reviews(id_libro: int):
 
 @app.post("/review/subirReview", tags=["Review"])
 async def review_subir_review(libro_id: int, comentario: str, calificacion: int):
-    require_role(2, 0)  # premium o admin
+    require_role(2, 0)
     r = Review(
         id_review=len(Review.calificaciones_usuarios) + 1,
         usuario_id=usuario_actual.id_usuario,
@@ -269,7 +281,7 @@ async def review_eliminar_review():
 
 @app.post("/suscripcion/activarSuscripcionPremium", tags=["Suscripcion"])
 async def suscripcion_activar_premium(id_suscripcion: int):
-    require_role(1, 2, 0)  # cualquier usuario logueado puede activar/renovar (simulado)
+    require_role(1, 2, 0)
     hoy = date.today()
     sus = Suscripcion(id_suscripcion=id_suscripcion, usuario_id=usuario_actual.id_usuario, tipo_plan="gratuito", fecha_inicio=hoy, fecha_fin=hoy, tarifa=0)
     sus.activar_suscripcion_premium()
@@ -281,9 +293,3 @@ async def suscripcion_ver_estado():
     hoy = date.today()
     sus = Suscripcion(id_suscripcion=1, usuario_id=usuario_actual.id_usuario, tipo_plan="premium", fecha_inicio=hoy, fecha_fin=hoy + timedelta(days=30), tarifa=100)
     return {"estado": sus.ver_estado_suscripcion()}
-
-# ---------------------- Gratuito/Premium helpers opcionales ----------------------
-
-@app.get("/gratuito/pasarAPremium", tags=["Gratuito"])
-async def gratuito_pasar_premium_alias():
-    return await gratuito_pasar_a_premium()
