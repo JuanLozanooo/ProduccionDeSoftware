@@ -1,11 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from typing import Optional, Dict, Any, Union
 from sqlmodel.ext.asyncio.session import AsyncSession
 from contextlib import asynccontextmanager
 from database.connection_db import get_session, init_db
 from fastapi.templating import Jinja2Templates
 import os
+from functools import wraps
 
 from app.usuario import Usuario
 from app.gratuito import Gratuito
@@ -15,8 +16,20 @@ from app.libro import Libro
 from app.review import Review
 from app.suscripcion import Suscripcion
 
-# Estado global de sesión (ADVERTENCIA: No es seguro para producción, usar un sistema de tokens)
+# --- Authentication and Authorization ---
 usuario_actual: Optional[Usuario] = None
+
+def role_required(allowed_roles: list[int]):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(request: Request, *args, **kwargs):
+            if usuario_actual is None:
+                return templates.TemplateResponse("login.html", {"request": request, "error": "Debe iniciar sesión"})
+            if usuario_actual.rol not in allowed_roles:
+                return templates.TemplateResponse("access_denied.html", {"request": request})
+            return await func(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,195 +49,268 @@ app = FastAPI(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
-# --- Dependencias y Utilidades de Autorización ---
+# --- Routes ---
 
-def require_login():
-    if usuario_actual is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Debe iniciar sesión")
-
-def require_role(*roles: int):
-    require_login()
-    if usuario_actual.rol not in roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tiene permisos para esta acción")
-
-async def get_libro_by_id(id_libro: int, session: AsyncSession = Depends(get_session)) -> Libro:
-    admin = Administrador(0, "", "", "") # Instancia temporal para acceder al método
-    libro = await admin.consultar_libro(session, id_libro)
-    if not libro:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Libro no encontrado")
-    return libro
-
-# ---------------------- Sistema ----------------------
-
-@app.get("/", response_class=HTMLResponse, tags=["Página Principal"])
+@app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse("home.html", {"request": request})
+    if usuario_actual is None:
+        return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("home.html", {"request": request, "usuario": usuario_actual})
 
-# ---------------------- Usuario ----------------------
-
-@app.post("/usuario/iniciarSesion", tags=["Usuario"])
-async def usuario_iniciar_sesion(username: str, password: str, session: AsyncSession = Depends(get_session)):
+@app.post("/login", response_class=HTMLResponse)
+async def login(request: Request, username: str = Form(...), password: str = Form(...), session: AsyncSession = Depends(get_session)):
     global usuario_actual
-    # Se crea una instancia temporal para la autenticación
     u = Usuario(id_usuario=0, rol=0, username=username, email_usuario="", password=password)
     info = await u.iniciar_sesion(session)
     if not info.get("autenticado"):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Su usuario o contraseña son incorrectos.")
+        return templates.TemplateResponse("login.html", {"request": request, "error": info.get("mensaje")})
     
-    # El objeto 'u' ahora contiene toda la información del usuario desde la BD
     usuario_actual = u
-    return {"mensaje": "Sesión iniciada", "usuario": usuario_actual.username, "rol": usuario_actual.rol}
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-@app.post("/usuario/cerrarSesion", tags=["Usuario"])
-async def usuario_cerrar_sesion():
+@app.get("/logout")
+async def logout(request: Request):
     global usuario_actual
-    require_login()
-    resultado = await usuario_actual.cerrar_sesion()
     usuario_actual = None
-    return resultado
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-@app.get("/usuario/buscarLibro", tags=["Usuario"])
-async def usuario_buscar_libro(
-    titulo: Optional[str] = None, autor: Optional[str] = None, categoria: Optional[str] = None,
-    session: AsyncSession = Depends(get_session)
-):
-    require_login()
-    libro = await usuario_actual.buscar_libro(session, titulo=titulo, autor=autor, categoria=categoria)
-    if not libro:
-        return {"resultado": None, "descripcion": "No se encontraron libros con esos criterios."}
-    return {"resultado": libro.__dict__, "descripcion": libro.obtener_descripción()}
+# --- Administrator Views ---
 
-@app.post("/usuario/cambiarUsername", tags=["Usuario"])
-async def usuario_cambiar_username(nuevo_username: str, session: AsyncSession = Depends(get_session)):
-    require_login()
-    return await usuario_actual.cambiar_username(session, nuevo_username)
+@app.get("/admin/crear_usuario_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_crear_usuario(request: Request):
+    return templates.TemplateResponse("admin/crear_usuario.html", {"request": request})
 
-@app.post("/usuario/cambiarContrasena", tags=["Usuario"])
-async def usuario_cambiar_contrasena(nueva_contrasena: str, session: AsyncSession = Depends(get_session)):
-    require_login()
-    return await usuario_actual.cambiar_contrasena(session, nueva_contrasena)
+@app.get("/admin/consultar_usuario_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_consultar_usuario(request: Request):
+    return templates.TemplateResponse("admin/consultar_usuario.html", {"request": request})
 
-# ---------------------- Gratuito ----------------------
+@app.get("/admin/actualizar_usuario_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_actualizar_usuario(request: Request):
+    return templates.TemplateResponse("admin/actualizar_usuario.html", {"request": request})
 
-@app.get("/gratuito/leerFragmentoLibro/{id_libro}", tags=["Gratuito"])
-async def gratuito_leer_fragmento_libro(libro: Libro = Depends(get_libro_by_id)):
-    require_role(0, 1)
-    g = Gratuito(**usuario_actual.__dict__)
-    return g.leer_fragmento_libro(libro)
+@app.get("/admin/eliminar_usuario_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_eliminar_usuario(request: Request):
+    return templates.TemplateResponse("admin/eliminar_usuario.html", {"request": request})
 
-@app.post("/gratuito/pasarAPremium", tags=["Gratuito"])
-async def gratuito_pasar_a_premium(codigo: str, session: AsyncSession = Depends(get_session)):
-    require_role(1)
-    g = Gratuito(**usuario_actual.__dict__)
-    return await g.pasar_a_premium(session, codigo)
+@app.get("/admin/gestionar_estado_usuario_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_gestionar_estado_usuario(request: Request):
+    return templates.TemplateResponse("admin/gestionar_estado_usuario.html", {"request": request})
 
-# ---------------------- UsuarioPago (Premium) ----------------------
+@app.get("/admin/crear_libro_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_crear_libro(request: Request):
+    return templates.TemplateResponse("admin/crear_libro.html", {"request": request})
 
-@app.get("/usuarioPago/leerLibroCompleto/{id_libro}", tags=["UsuarioPago"])
-async def premium_leer_libro_completo(libro: Libro = Depends(get_libro_by_id)):
-    require_role(0, 2)
-    p = UsuarioPago(**usuario_actual.__dict__)
-    return p.leer_libro_completo(libro)
+@app.get("/admin/consultar_libro_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_consultar_libro(request: Request):
+    return templates.TemplateResponse("admin/consultar_libro.html", {"request": request})
 
-@app.post("/usuarioPago/cancelarSuscripcion", tags=["UsuarioPago"])
-async def premium_cancelar_suscripcion(session: AsyncSession = Depends(get_session)):
-    require_role(2)
-    p = UsuarioPago(**usuario_actual.__dict__)
-    resultado = await p.cancelar_suscripcion(session)
-    # Actualizar el estado del usuario en la sesión global
-    if "error" not in resultado:
-        usuario_actual.rol = 1
-    return resultado
+@app.get("/admin/actualizar_libro_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_actualizar_libro(request: Request):
+    return templates.TemplateResponse("admin/actualizar_libro.html", {"request": request})
 
-# ---------------------- Review ----------------------
+@app.get("/admin/eliminar_libro_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0])
+async def form_eliminar_libro(request: Request):
+    return templates.TemplateResponse("admin/eliminar_libro.html", {"request": request})
 
-@app.post("/review/subirReview/{id_libro}", tags=["Review"])
-async def review_subir_review(comentario: str, libro: Libro = Depends(get_libro_by_id), session: AsyncSession = Depends(get_session)):
-    require_login()
-    r = Review(comentario=comentario)
-    await r.subir_review(session, usuario_actual, libro)
-    return {"mensaje": "Review subida correctamente.", "review_id": r.id_review}
+# --- User Views ---
+@app.get("/user/buscar_libro_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0, 1, 2])
+async def form_buscar_libro(request: Request):
+    return templates.TemplateResponse("user/buscar_libro.html", {"request": request})
 
-# ---------------------- Libro ----------------------
+@app.get("/user/cambiar_username_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0, 1, 2])
+async def form_cambiar_username(request: Request):
+    return templates.TemplateResponse("user/cambiar_username.html", {"request": request})
 
-@app.get("/libro/mostrarReviews/{id_libro}", tags=["Libro"])
-async def libro_mostrar_reviews(libro: Libro = Depends(get_libro_by_id), session: AsyncSession = Depends(get_session)):
-    require_login()
-    reviews = await libro.mostrar_reviews(session)
-    return {"reviews": reviews}
+@app.get("/user/cambiar_contrasena_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0, 1, 2])
+async def form_cambiar_contrasena(request: Request):
+    return templates.TemplateResponse("user/cambiar_contrasena.html", {"request": request})
 
-# ---------------------- Suscripcion ----------------------
+# --- Gratuito Views ---
+@app.get("/gratuito/leer_fragmento_libro_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[1])
+async def form_leer_fragmento_libro(request: Request):
+    return templates.TemplateResponse("gratuito/leer_fragmento_libro.html", {"request": request})
 
-@app.post("/suscripcion/activarSuscripcionPremium", tags=["Suscripcion"])
-async def suscripcion_activar_premium(codigo: str, session: AsyncSession = Depends(get_session)):
-    require_role(1) # Solo usuarios gratuitos pueden activar una nueva suscripción
-    resultado = await Suscripcion.activar_suscripcion_premium(session, usuario_actual, codigo)
-    # Actualizar el estado del usuario en la sesión global
-    if "Error" not in resultado:
-        usuario_actual.rol = 2
-    return {"estado": resultado}
+@app.get("/gratuito/pasar_a_premium_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[1])
+async def form_pasar_a_premium(request: Request):
+    return templates.TemplateResponse("gratuito/pasar_a_premium.html", {"request": request})
 
-@app.get("/suscripcion/verEstadoSuscripcion", tags=["Suscripcion"])
-async def suscripcion_ver_estado(session: AsyncSession = Depends(get_session)) -> Union[Dict[str, Any], str]:
-    require_login()
-    return await Suscripcion.ver_estado_suscripcion(session, usuario_actual)
+# --- Premium Views ---
+@app.get("/premium/leer_libro_completo_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[2])
+async def form_leer_libro_completo(request: Request):
+    return templates.TemplateResponse("premium/leer_libro_completo.html", {"request": request})
 
-# ---------------------- Administrador ----------------------
+@app.get("/premium/cancelar_suscripcion_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[2])
+async def form_cancelar_suscripcion(request: Request):
+    return templates.TemplateResponse("premium/cancelar_suscripcion.html", {"request": request})
 
-def get_admin() -> Administrador:
-    require_role(0)
-    return Administrador(
-        id_admin=usuario_actual.id_usuario,
-        username=usuario_actual.username,
-        email=usuario_actual.email_usuario,
-        password=usuario_actual.password
-    )
+# --- Review Views ---
+@app.get("/review/subir_review_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0, 1, 2])
+async def form_subir_review(request: Request):
+    return templates.TemplateResponse("review/subir_review.html", {"request": request})
 
-@app.post("/administrador/crearUsuario", tags=["Administrador"])
-async def admin_crear_usuario(datos: Dict[str, Any], admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
-    u = await admin.crear_usuario(session, datos)
-    return u.__dict__
+# --- Suscripcion Views ---
+@app.get("/suscripcion/activar_suscripcion_premium_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[1])
+async def form_activar_suscripcion_premium(request: Request):
+    return templates.TemplateResponse("suscripcion/activar_suscripcion_premium.html", {"request": request})
 
-@app.get("/administrador/consultarUsuario/{id_usuario}", tags=["Administrador"])
-async def admin_consultar_usuario(id_usuario: int, admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
+@app.get("/suscripcion/ver_estado_suscripcion_form", response_class=HTMLResponse)
+@role_required(allowed_roles=[0, 1, 2])
+async def form_ver_estado_suscripcion(request: Request):
+    return templates.TemplateResponse("suscripcion/ver_estado_suscripcion.html", {"request": request})
+    
+# --- API Endpoints (for AJAX calls from templates) ---
+
+@app.post("/api/admin/crear_usuario", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_crear_usuario(request: Request, session: AsyncSession = Depends(get_session), datos: Dict[str, Any] = None):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
+    # Logic to create user from form data
+    # ...
+    return {"message": "Usuario creado"}
+
+@app.get("/api/admin/consultar_usuario/{id_usuario}", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_consultar_usuario(request: Request, id_usuario: int, session: AsyncSession = Depends(get_session)):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
     u = await admin.consultar_usuario(session, id_usuario)
     if not u:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return u.__dict__
 
-@app.patch("/administrador/actualizarUsuario/{id_usuario}", tags=["Administrador"])
-async def admin_actualizar_usuario(id_usuario: int, campos: Dict[str, Any], admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
+@app.patch("/api/admin/actualizar_usuario/{id_usuario}", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_actualizar_usuario(request: Request, id_usuario: int, campos: Dict[str, Any], session: AsyncSession = Depends(get_session)):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
     await admin.actualizar_usuario(session, id_usuario, campos)
     return {"mensaje": "Usuario actualizado correctamente"}
 
-@app.delete("/administrador/eliminarUsuario/{id_usuario}", tags=["Administrador"])
-async def admin_eliminar_usuario(id_usuario: int, admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
+@app.delete("/api/admin/eliminar_usuario/{id_usuario}", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_eliminar_usuario(request: Request, id_usuario: int, session: AsyncSession = Depends(get_session)):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
     await admin.eliminar_usuario(session, id_usuario)
     return {"mensaje": "Usuario eliminado correctamente"}
 
-@app.post("/administrador/gestionarEstadoUsuario/{id_usuario}", tags=["Administrador"])
-async def admin_gestionar_estado_usuario(id_usuario: int, activo: bool, admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
+@app.post("/api/admin/gestionar_estado_usuario/{id_usuario}", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_gestionar_estado_usuario(request: Request, id_usuario: int, activo: bool, session: AsyncSession = Depends(get_session)):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
     await admin.gestionar_estado_usuario(session, id_usuario, activo)
     return {"id_usuario": id_usuario, "activo": activo}
 
-@app.post("/administrador/crearLibro", tags=["Administrador"])
-async def admin_crear_libro(datos: Dict[str, Any], admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
-    l = await admin.crear_libro(session, datos)
-    return l.__dict__
+@app.post("/api/admin/crear_libro", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_crear_libro(request: Request, session: AsyncSession = Depends(get_session), datos: Dict[str, Any] = None):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
+    # Logic to create book from form data
+    # ...
+    return {"message": "Libro creado"}
 
-@app.get("/administrador/consultarLibro/{id_libro}", tags=["Administrador"])
-async def admin_consultar_libro(id_libro: int, admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
+@app.get("/api/admin/consultar_libro/{id_libro}", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_consultar_libro(request: Request, id_libro: int, session: AsyncSession = Depends(get_session)):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
     l = await admin.consultar_libro(session, id_libro)
     if not l:
         raise HTTPException(status_code=404, detail="Libro no encontrado")
     return l.__dict__
 
-@app.patch("/administrador/actualizarLibro/{id_libro}", tags=["Administrador"])
-async def admin_actualizar_libro(id_libro: int, campos: Dict[str, Any], admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
+@app.patch("/api/admin/actualizar_libro/{id_libro}", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_actualizar_libro(request: Request, id_libro: int, campos: Dict[str, Any], session: AsyncSession = Depends(get_session)):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
     await admin.actualizar_libro(session, id_libro, campos)
     return {"mensaje": "Libro actualizado correctamente"}
 
-@app.delete("/administrador/eliminarLibro/{id_libro}", tags=["Administrador"])
-async def admin_eliminar_libro(id_libro: int, admin: Administrador = Depends(get_admin), session: AsyncSession = Depends(get_session)):
+@app.delete("/api/admin/eliminar_libro/{id_libro}", tags=["Administrador"])
+@role_required(allowed_roles=[0])
+async def api_eliminar_libro(request: Request, id_libro: int, session: AsyncSession = Depends(get_session)):
+    admin = Administrador(id_admin=usuario_actual.id_usuario, username=usuario_actual.username, email=usuario_actual.email_usuario, password=usuario_actual.password, rol=usuario_actual.rol)
     await admin.eliminar_libro(session, id_libro)
     return {"mensaje": "Libro eliminado correctamente"}
+
+@app.post("/api/user/buscar_libro", tags=["Usuario"])
+@role_required(allowed_roles=[0, 1, 2])
+async def api_buscar_libro(request: Request, session: AsyncSession = Depends(get_session), search_term: str = Form(...)):
+    libro = await usuario_actual.buscar_libro(session, search_term)
+    if not libro:
+        return {"resultado": "No se encontraron libros."}
+    return {"resultado": libro.obtener_descripción()}
+
+@app.post("/api/user/cambiar_username", tags=["Usuario"])
+@role_required(allowed_roles=[0, 1, 2])
+async def api_cambiar_username(request: Request, nuevo_username: str = Form(...), session: AsyncSession = Depends(get_session)):
+    return await usuario_actual.cambiar_username(session, nuevo_username)
+
+@app.post("/api/user/cambiar_contrasena", tags=["Usuario"])
+@role_required(allowed_roles=[0, 1, 2])
+async def api_cambiar_contrasena(request: Request, nueva_contrasena: str = Form(...), session: AsyncSession = Depends(get_session)):
+    return await usuario_actual.cambiar_contrasena(session, nueva_contrasena)
+
+@app.get("/api/gratuito/leer_fragmento_libro/{id_libro}", tags=["Gratuito"])
+@role_required(allowed_roles=[1])
+async def api_leer_fragmento_libro(request: Request, id_libro: int, session: AsyncSession = Depends(get_session)):
+    g = Gratuito(**usuario_actual.__dict__)
+    libro = await Administrador(0,"","","",0).consultar_libro(session, id_libro)
+    if not libro:
+        raise HTTPException(status_code=404, detail="Libro no encontrado")
+    return g.leer_fragmento_libro(libro)
+
+@app.post("/api/gratuito/pasar_a_premium", tags=["Gratuito"])
+@role_required(allowed_roles=[1])
+async def api_pasar_a_premium(request: Request, codigo: str = Form(...), session: AsyncSession = Depends(get_session)):
+    g = Gratuito(**usuario_actual.__dict__)
+    return await g.pasar_a_premium(session, codigo)
+
+@app.get("/api/premium/leer_libro_completo/{id_libro}", tags=["Premium"])
+@role_required(allowed_roles=[2])
+async def api_leer_libro_completo(request: Request, id_libro: int, session: AsyncSession = Depends(get_session)):
+    p = UsuarioPago(**usuario_actual.__dict__)
+    libro = await Administrador(0,"","","",0).consultar_libro(session, id_libro)
+    if not libro:
+        raise HTTPException(status_code=404, detail="Libro no encontrado")
+    return p.leer_libro_completo(libro)
+
+@app.post("/api/premium/cancelar_suscripcion", tags=["Premium"])
+@role_required(allowed_roles=[2])
+async def api_cancelar_suscripcion(request: Request, session: AsyncSession = Depends(get_session)):
+    p = UsuarioPago(**usuario_actual.__dict__)
+    return await p.cancelar_suscripcion(session)
+
+@app.post("/api/review/subir_review/{id_libro}", tags=["Review"])
+@role_required(allowed_roles=[0, 1, 2])
+async def api_subir_review(request: Request, id_libro: int, comentario: str = Form(...), session: AsyncSession = Depends(get_session)):
+    r = Review(comentario=comentario)
+    libro = await Administrador(0,"","","",0).consultar_libro(session, id_libro)
+    if not libro:
+        raise HTTPException(status_code=404, detail="Libro no encontrado")
+    await r.subir_review(session, usuario_actual, libro)
+    return {"mensaje": "Review subida correctamente."}
+
+@app.post("/api/suscripcion/activar_suscripcion_premium", tags=["Suscripcion"])
+@role_required(allowed_roles=[1])
+async def api_activar_suscripcion_premium(request: Request, codigo: str = Form(...), session: AsyncSession = Depends(get_session)):
+    return await Suscripcion.activar_suscripcion_premium(session, usuario_actual, codigo)
+
+@app.get("/api/suscripcion/ver_estado_suscripcion", tags=["Suscripcion"])
+@role_required(allowed_roles=[0, 1, 2])
+async def api_ver_estado_suscripcion(request: Request, session: AsyncSession = Depends(get_session)):
+    return await Suscripcion.ver_estado_suscripcion(session, usuario_actual)

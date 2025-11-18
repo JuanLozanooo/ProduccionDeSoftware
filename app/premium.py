@@ -4,8 +4,10 @@ from app.usuario import Usuario
 from app.libro import Libro
 
 class UsuarioPago(Usuario):
-    def __init__(self, id_usuario: int, username: str, email_usuario: str, password: str, activo: bool = True):
-        super().__init__(id_usuario, rol=2, username=username, email_usuario=email_usuario, password=password, activo=activo)
+    def __init__(self, **kwargs):
+        # El rol para UsuarioPago siempre será 2 (Premium)
+        kwargs['rol'] = 2
+        super().__init__(**kwargs)
 
     def leer_libro_completo(self, libro: Libro) -> dict:
         if self.rol not in [0, 2]:

@@ -23,7 +23,7 @@ class Usuario:
         )
         result = await session.execute(query, {"username": self.username})
         row = result.first()
-        if not row or str(row.password) != str(self.password):
+        if not row or str(row.password).strip() != str(self.password).strip():
             return {"autenticado": False, "mensaje": "Credenciales inválidas"}
 
         self.id_usuario = row.id_usuario

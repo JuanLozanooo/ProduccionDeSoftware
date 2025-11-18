@@ -1,6 +1,5 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy import text
-from app.design_patterns import DesignPatterns, ReviewConcreto, ReviewVerificadaDecorator
 from app.review import Review
 
 class Libro:
@@ -16,6 +15,7 @@ class Libro:
         return f"{self.titulo} de {self.autor} ({self.anio_publicacion}) - Categoría: {self.categoria}"
 
     async def mostrar_reviews(self, session: AsyncSession) -> str:
+        from app.design_patterns import DesignPatterns
         query_reviews = text(
             "SELECT r.id_review, r.usuario_id, r.libro_id, r.comentario "
             "FROM review r WHERE r.libro_id = :id_libro"

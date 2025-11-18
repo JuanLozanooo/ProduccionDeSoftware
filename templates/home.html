@@ -1,254 +1,242 @@
 {% extends "base.html" %}
 
-{% block title %}Inicio | Biblioteca Digital{% endblock %}
+{% block title %}Inicio{% endblock %}
 
 {% block content %}
+<div class="container mt-4">
 
-<div class="hero-section text-center py-5 px-3 mb-5 rounded-3">
-    <i class="fas fa-book-reader hero-icon"></i>
-    <h1 class="display-3">Bienvenido a la Biblioteca Digital</h1>
-    <p class="lead col-lg-8 mx-auto" style="color: var(--color-cafe-oscuro); font-weight: 500;">
-        Explora, descubre y sumérgete en un mundo de conocimiento.
-        Encuentra tu próxima lectura favorita en nuestra vasta colección.
+    <h1 class="mb-4 text-center">Bienvenido, {{ usuario.username }}!</h1>
+    <p class="text-center fs-5">
+        Tu rol es:
+        <span class="fw-bold text-primary">
+            {% if usuario.rol == 0 %}Administrador{% elif usuario.rol == 1 %}Gratuito{% elif usuario.rol == 2 %}Premium{% endif %}
+        </span>
     </p>
 
-    <div class="row justify-content-center mt-4">
-        <div class="col-md-8">
-            <form action="/usuario/buscarLibro" method="GET" class="d-flex shadow-sm">
-                <input class="form-control me-2" type="search" name="titulo" placeholder="Buscar por título, autor o categoría..." aria-label="Buscar">
-                <button class="btn btn-primary btn-lg" type="submit" style="white-space: nowrap;">
-                    <i class="fas fa-search me-1"></i> Buscar
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
+    <div class="row g-4 mt-4">
 
-<div id="servicios" class="my-5 pt-4">
-    <h2 class="text-center mb-5 display-5">Explora Nuestros Servicios</h2>
-    <div class="row g-4">
-
-        <div class="col-md-4">
-            <div class="feature-card h-100">
-                <div class="feature-icon">
-                    <i class="fas fa-book-open"></i>
-                </div>
-                <h3 class="feature-title">Lee Fragmentos (Gratis)</h3>
-                <p>¿No estás seguro? Todos nuestros usuarios pueden leer un fragmento de cualquier libro de la colección antes de comprometerse.</p>
-                </div>
+        {# ---------- ADMINISTRADOR ---------- #}
+        {% if usuario.rol == 0 %}
+        <div class="col-12">
+            <h3 class="mb-3 text-secondary">Gestión de Usuarios</h3>
         </div>
 
         <div class="col-md-4">
-            <div class="feature-card h-100">
-                <div class="feature-icon">
-                    <i class="fas fa-star text-warning"></i>
+            <div class="card shadow-sm h-100" style="border-color: var(--color-cafe-claro);">
+                <div class="card-body">
+                    <h5 class="card-title">Crear Usuario</h5>
+                    <p class="card-text">Añade nuevos usuarios al sistema.</p>
+                    <a href="/admin/crear_usuario_form" class="btn btn-primary">Ir</a>
                 </div>
-                <h3 class="feature-title">Acceso Premium</h3>
-                <p>Conviértete en Premium para leer libros completos, descargar contenido y disfrutar de una experiencia sin interrupciones.</p>
-                </div>
+            </div>
         </div>
 
         <div class="col-md-4">
-            <div class="feature-card h-100">
-                <div class="feature-icon">
-                    <i class="fas fa-comments"></i>
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Consultar Usuario</h5>
+                    <p class="card-text">Busca información de usuarios registrados.</p>
+                    <a href="/admin/consultar_usuario_form" class="btn btn-primary">Ir</a>
                 </div>
-                <h3 class="feature-title">Crea Reseñas</h3>
-                <p>¡Tu opinión importa! Los usuarios Premium pueden calificar y dejar reseñas de los libros, ayudando a toda la comunidad.</p>
-                </div>
+            </div>
         </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Actualizar Usuario</h5>
+                    <p class="card-text">Modifica datos de usuarios existentes.</p>
+                    <a href="/admin/actualizar_usuario_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Eliminar Usuario</h5>
+                    <p class="card-text">Quita usuarios del sistema.</p>
+                    <a href="/admin/eliminar_usuario_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Gestionar Estado</h5>
+                    <p class="card-text">Activa, suspende o reactiva cuentas.</p>
+                    <a href="/admin/gestionar_estado_usuario_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 mt-4">
+            <h3 class="mb-3 text-secondary">Gestión de Libros</h3>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Crear Libro</h5>
+                    <p class="card-text">Añade nuevos libros a la biblioteca.</p>
+                    <a href="/admin/crear_libro_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Consultar Libro</h5>
+                    <p class="card-text">Busca libros por título o autor.</p>
+                    <a href="/admin/consultar_libro_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Actualizar Libro</h5>
+                    <p class="card-text">Modifica datos de libros existentes.</p>
+                    <a href="/admin/actualizar_libro_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Eliminar Libro</h5>
+                    <p class="card-text">Quita libros del catálogo.</p>
+                    <a href="/admin/eliminar_libro_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ---------- FUNCIONES GENERALES (Rol 0,1,2) ---------- #}
+        {% if usuario.rol in [0, 1, 2] %}
+        <div class="col-12 mt-5">
+            <h3 class="mb-3 text-secondary">Opciones Generales</h3>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Buscar Libro</h5>
+                    <p class="card-text">Encuentra cualquier libro disponible.</p>
+                    <a href="/user/buscar_libro_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Cambiar Username</h5>
+                    <p class="card-text">Actualiza tu nombre de usuario.</p>
+                    <a href="/user/cambiar_username_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Cambiar Contraseña</h5>
+                    <p class="card-text">Refuerza la seguridad de tu cuenta.</p>
+                    <a href="/user/cambiar_contrasena_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Subir Review</h5>
+                    <p class="card-text">Comparte tu opinión sobre un libro.</p>
+                    <a href="/review/subir_review_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Estado de Suscripción</h5>
+                    <p class="card-text">Consulta tu plan actual.</p>
+                    <a href="/suscripcion/ver_estado_suscripcion_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ---------- GRATUITO ---------- #}
+        {% if usuario.rol == 1 %}
+        <div class="col-12 mt-5">
+            <h3 class="mb-3 text-secondary">Funciones de Usuario Gratuito</h3>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Leer Fragmento</h5>
+                    <p class="card-text">Accede a un fragmento gratuito.</p>
+                    <a href="/gratuito/leer_fragmento_libro_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pasar a Premium</h5>
+                    <p class="card-text">Desbloquea libros completos.</p>
+                    <a href="/gratuito/pasar_a_premium_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Activar Premium</h5>
+                    <p class="card-text">Inicia tu suscripción.</p>
+                    <a href="/suscripcion/activar_suscripcion_premium_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ---------- PREMIUM ---------- #}
+        {% if usuario.rol == 2 %}
+        <div class="col-12 mt-5">
+            <h3 class="mb-3 text-secondary">Funciones de Usuario Premium</h3>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Leer Libro Completo</h5>
+                    <p class="card-text">Accede al contenido completo.</p>
+                    <a href="/premium/leer_libro_completo_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Cancelar Suscripción</h5>
+                    <p class="card-text">Administra tu plan premium.</p>
+                    <a href="/premium/cancelar_suscripcion_form" class="btn btn-primary">Ir</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
     </div>
 </div>
-
-<div class="my-5 py-5" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 5px 20px rgba(93, 64, 55, 0.05);">
-    <h2 class="text-center mb-4 display-5">Libros Destacados</h2>
-    <div id="bookCarousel" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-inner">
-
-            <div class="carousel-item active">
-                <div class="row justify-content-center">
-                    <div class="col-10 col-md-3">
-                        <div class="book-card">
-                            <div class="book-cover-placeholder">
-                                <i class="fas fa-book"></i>
-                            </div>
-                            <h5>Cien Años de Soledad</h5>
-                            <p class="book-author">Gabriel García Márquez</p>
-                            <span class="badge bg-secondary">Ficción</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="carousel-item">
-                <div class="row justify-content-center">
-                    <div class="col-10 col-md-3">
-                        <div class="book-card">
-                            <div class="book-cover-placeholder" style="background: linear-gradient(135deg, #424242, #757575);">
-                                <i class="fas fa-shield-alt"></i>
-                            </div>
-                            <h5>El Arte de la Guerra</h5>
-                            <p class="book-author">Sun Tzu</p>
-                            <span class="badge bg-secondary">Estrategia</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="carousel-item">
-                <div class="row justify-content-center">
-                    <div class="col-10 col-md-3">
-                         <div class="book-card">
-                            <div class="book-cover-placeholder" style="background: linear-gradient(135deg, #0277BD, #03A9F4);">
-                                <i class="fab fa-python"></i>
-                            </div>
-                            <h5>Programación en Python</h5>
-                            <p class="book-author">A. Coder</p>
-                            <span class="badge bg-secondary">Tecnología</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#bookCarousel" data-bs-slide="prev">
-            <span class="carousel-control-icon" aria-hidden="true"><i class="fas fa-chevron-left"></i></span>
-            <span class="visually-hidden">Anterior</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#bookCarousel" data-bs-slide="next">
-            <span class="carousel-control-icon" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-            <span class="visually-hidden">Siguiente</span>
-        </button>
-    </div>
-</div>
-
-<div class="my-5 pt-4">
-    <h2 class="text-center mb-5 display-5">Lo que dicen nuestros lectores</h2>
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="testimonial-card">
-                <p class="testimonial-text">"Encontré el libro que buscaba para mi tesis en segundos. ¡Increíble!"</p>
-                <p class="testimonial-author">- Estudiante Universitario</p>
-            </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="testimonial-card">
-                <p class="testimonial-text">"Me encanta poder leer los fragmentos gratis antes de decidirme. ¡Muy útil!"</p>
-                <p class="testimonial-author">- Lector Ocasional</p>
-            </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="testimonial-card">
-                <p class="testimonial-text">"La suscripción Premium vale cada centavo. Leo sin límites."</p>
-                <p class="testimonial-author">- Devorador de Libros</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="text-center my-5 p-5 rounded-3" style="background-color: var(--color-cafe-claro);">
-    <h3 class="display-6" style="color: white;">¿Listo para comenzar tu aventura?</h3>
-    <p class="lead" style="color: var(--color-fondo-crema);">Inicia sesión o regístrate para acceder a nuestra colección.</p>
-    <a href="#login" class="btn btn-primary btn-lg mt-3 me-2">
-        <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
-    </a>
-    <a href="#register" class="btn btn-outline-light btn-lg mt-3">
-        Registrarse
-    </a>
-</div>
-
-</div>
-
-<style>
-    .hero-section {
-        background: linear-gradient(135deg, rgba(255, 183, 77, 0.2), rgba(245, 124, 0, 0.1));
-        border: 1px solid rgba(245, 124, 0, 0.2);
-    }
-
-    .hero-icon {
-        font-size: 3rem;
-        color: var(--color-naranja-acento);
-        margin-bottom: 1rem;
-    }
-
-    .feature-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 2rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.03);
-        border: 1px solid transparent;
-        border-top: 4px solid var(--color-cafe-claro);
-    }
-
-    .feature-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(93, 64, 55, 0.1);
-        border-top-color: var(--color-naranja-acento);
-    }
-
-    .feature-icon {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        color: var(--color-naranja-acento);
-    }
-
-    .feature-title {
-        color: var(--color-cafe-oscuro);
-        margin-bottom: 0.75rem;
-    }
-
-    /* Estilos del Carrusel */
-    .book-card {
-        text-align: center;
-        padding: 1rem;
-    }
-    .book-cover-placeholder {
-        width: 150px;
-        height: 220px;
-        background: linear-gradient(135deg, var(--color-cafe-claro), var(--color-cafe-oscuro));
-        border-radius: 8px;
-        margin: 0 auto 1rem auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 3rem;
-        color: white;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .book-author {
-        font-size: 0.9rem;
-        color: var(--color-cafe-claro);
-        margin-bottom: 0.5rem;
-    }
-
-    .carousel-control-icon {
-        color: var(--color-naranja-acento);
-        font-size: 1.5rem;
-    }
-
-    /* Testimonios */
-    .testimonial-card {
-        background: #ffffff;
-        border-radius: 8px;
-        padding: 2rem;
-        height: 100%;
-        border-left: 5px solid var(--color-naranja-acento);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-    .testimonial-text {
-        font-family: 'Lora', serif;
-        font-style: italic;
-        font-size: 1.1rem;
-        color: #333;
-    }
-    .testimonial-author {
-        font-weight: 600;
-        color: var(--color-cafe-oscuro);
-        text-align: right;
-        margin-top: 1rem;
-    }
-</style>
-
 {% endblock %}
