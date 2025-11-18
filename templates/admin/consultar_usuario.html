@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Consultar Usuario{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Consultar Usuario</h2>
+    <form id="consultarForm">
+        <div class="mb-3">
+            <label for="id_usuario" class="form-label">ID de Usuario</label>
+            <input type="number" class="form-control" id="id_usuario" name="id_usuario" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Consultar</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('consultarForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const id_usuario = document.getElementById('id_usuario').value;
+        const response = await fetch(`/api/admin/consultar_usuario/${id_usuario}`);
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `
+                <p><strong>ID:</strong> ${data.id_usuario}</p>
+                <p><strong>Username:</strong> ${data.username}</p>
+                <p><strong>Email:</strong> ${data.email_usuario}</p>
+                <p><strong>Rol:</strong> ${data.rol}</p>
+                <p><strong>Activo:</strong> ${data.activo}</p>
+            `;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

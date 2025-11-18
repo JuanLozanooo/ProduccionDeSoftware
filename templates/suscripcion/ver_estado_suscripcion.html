@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Estado de Suscripción{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Estado de Suscripción</h2>
+    <button id="verEstadoBtn" class="btn btn-primary">Ver Estado</button>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('verEstadoBtn').addEventListener('click', async function(event) {
+        event.preventDefault();
+        const response = await fetch('/api/suscripcion/ver_estado_suscripcion');
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            if (typeof data === 'string') {
+                resultText = `<p>${data}</p>`;
+            } else {
+                resultText = `
+                    <p><strong>Estado:</strong> ${data.estado}</p>
+                    <p><strong>Meses restantes:</strong> ${data.meses_restantes}</p>
+                `;
+            }
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

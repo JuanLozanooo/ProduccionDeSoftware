@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Consultar Libro{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Consultar Libro</h2>
+    <form id="consultarForm">
+        <div class="mb-3">
+            <label for="id_libro" class="form-label">ID de Libro</label>
+            <input type="number" class="form-control" id="id_libro" name="id_libro" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Consultar</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('consultarForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const id_libro = document.getElementById('id_libro').value;
+        const response = await fetch(`/api/admin/consultar_libro/${id_libro}`);
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `
+                <p><strong>ID:</strong> ${data.id_libro}</p>
+                <p><strong>Título:</strong> ${data.titulo}</p>
+                <p><strong>Autor:</strong> ${data.autor}</p>
+                <p><strong>Categoría:</strong> ${data.categoria}</p>
+                <p><strong>Año:</strong> ${data.anio_publicacion}</p>
+                <p><strong>Sinopsis:</strong> ${data.sinopsis}</p>
+            `;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

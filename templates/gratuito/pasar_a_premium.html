@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Pasar a Premium{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Pasar a Premium</h2>
+    <form id="pasarPremiumForm">
+        <div class="mb-3">
+            <label for="codigo" class="form-label">Código de Suscripción</label>
+            <input type="text" class="form-control" id="codigo" name="codigo" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Activar Premium</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('pasarPremiumForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const codigo = document.getElementById('codigo').value;
+        const response = await fetch('/api/gratuito/pasar_a_premium', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `codigo=${codigo}`
+        });
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `<p class="text-success">${data.mensaje}</p>`;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

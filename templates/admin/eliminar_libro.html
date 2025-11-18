@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Libro{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Eliminar Libro</h2>
+    <form id="eliminarForm">
+        <div class="mb-3">
+            <label for="id_libro" class="form-label">ID de Libro</label>
+            <input type="number" class="form-control" id="id_libro" name="id_libro" required>
+        </div>
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('eliminarForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const id_libro = document.getElementById('id_libro').value;
+        if (confirm(`¿Estás seguro de que quieres eliminar el libro con ID ${id_libro}?`)) {
+            const response = await fetch(`/api/admin/eliminar_libro/${id_libro}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            let resultText = '';
+            if (response.ok) {
+                resultText = `<p class="text-success">${data.mensaje}</p>`;
+            } else {
+                resultText = `<p class="text-danger">${data.detail}</p>`;
+            }
+            document.getElementById('result').innerHTML = resultText;
+        }
+    });
+</script>
+{% endblock %}

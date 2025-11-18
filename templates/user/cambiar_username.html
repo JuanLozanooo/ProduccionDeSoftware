@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Cambiar Username{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Cambiar Username</h2>
+    <form id="changeUsernameForm">
+        <div class="mb-3">
+            <label for="nuevo_username" class="form-label">Nuevo Username</label>
+            <input type="text" class="form-control" id="nuevo_username" name="nuevo_username" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Cambiar</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('changeUsernameForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const nuevo_username = document.getElementById('nuevo_username').value;
+        const response = await fetch('/api/user/cambiar_username', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `nuevo_username=${nuevo_username}`
+        });
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `<p class="text-success">Username cambiado a: ${data.username}</p>`;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

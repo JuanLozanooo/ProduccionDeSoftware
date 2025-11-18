@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Leer Libro Completo{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Leer Libro Completo</h2>
+    <form id="leerLibroForm">
+        <div class="mb-3">
+            <label for="id_libro" class="form-label">ID de Libro</label>
+            <input type="number" class="form-control" id="id_libro" name="id_libro" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Leer Libro</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('leerLibroForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const id_libro = document.getElementById('id_libro').value;
+        const response = await fetch(`/api/premium/leer_libro_completo/${id_libro}`);
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `
+                <h3>${data.titulo}</h3>
+                <p>${data.contenido}</p>
+            `;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Cambiar Contraseña{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Cambiar Contraseña</h2>
+    <form id="changePasswordForm">
+        <div class="mb-3">
+            <label for="nueva_contrasena" class="form-label">Nueva Contraseña</label>
+            <input type="password" class="form-control" id="nueva_contrasena" name="nueva_contrasena" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Cambiar</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('changePasswordForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const nueva_contrasena = document.getElementById('nueva_contrasena').value;
+        const response = await fetch('/api/user/cambiar_contrasena', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `nueva_contrasena=${nueva_contrasena}`
+        });
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `<p class="text-success">Contraseña actualizada correctamente.</p>`;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Subir Review{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Subir Review</h2>
+    <form id="subirReviewForm">
+        <div class="mb-3">
+            <label for="id_libro" class="form-label">ID de Libro</label>
+            <input type="number" class="form-control" id="id_libro" name="id_libro" required>
+        </div>
+        <div class="mb-3">
+            <label for="comentario" class="form-label">Comentario</label>
+            <textarea class="form-control" id="comentario" name="comentario" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Subir Review</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('subirReviewForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const id_libro = document.getElementById('id_libro').value;
+        const comentario = document.getElementById('comentario').value;
+        const response = await fetch(`/api/review/subir_review/${id_libro}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `comentario=${comentario}`
+        });
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `<p class="text-success">${data.mensaje}</p>`;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}

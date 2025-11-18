@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Estado de Usuario{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Gestionar Estado de Usuario</h2>
+    <form id="gestionarForm">
+        <div class="mb-3">
+            <label for="id_usuario" class="form-label">ID de Usuario</label>
+            <input type="number" class="form-control" id="id_usuario" name="id_usuario" required>
+        </div>
+        <div class="mb-3">
+            <label for="activo" class="form-label">Estado</label>
+            <select class="form-select" id="activo" name="activo">
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Actualizar Estado</button>
+    </form>
+    <div id="result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById('gestionarForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const id_usuario = document.getElementById('id_usuario').value;
+        const activo = document.getElementById('activo').value;
+        const response = await fetch(`/api/admin/gestionar_estado_usuario/${id_usuario}?activo=${activo}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        let resultText = '';
+        if (response.ok) {
+            resultText = `<p class="text-success">Estado del usuario ${data.id_usuario} actualizado a ${data.activo}.</p>`;
+        } else {
+            resultText = `<p class="text-danger">${data.detail}</p>`;
+        }
+        document.getElementById('result').innerHTML = resultText;
+    });
+</script>
+{% endblock %}
