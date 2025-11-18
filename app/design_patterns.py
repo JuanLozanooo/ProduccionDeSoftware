@@ -1,6 +1,67 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy import text
-from typing import Optional
+from typing import Optional, List
+from app.libro import Libro
+import abc
+
+# ---------- CHAIN OF RESPONSIBILITY ----------
+class Handler(abc.ABC):
+    @abc.abstractmethod
+    def set_next(self, handler):
+        pass
+
+    @abc.abstractmethod
+    async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
+        pass
+
+class AbstractHandler(Handler):
+    _next_handler: Handler = None
+
+    def set_next(self, handler: Handler) -> Handler:
+        self._next_handler = handler
+        return handler
+
+    async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
+        if self._next_handler:
+            return await self._next_handler.handle(request, session)
+        return None
+
+class TituloHandler(AbstractHandler):
+    async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
+        query = text("SELECT * FROM libro WHERE LOWER(titulo) LIKE LOWER(:titulo) LIMIT 1")
+        result = await session.execute(query, {"titulo": f"%{request}%"})
+        row = result.first()
+        if row:
+            return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+        return await super().handle(request, session)
+
+class AutorHandler(AbstractHandler):
+    async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
+        query = text("SELECT * FROM libro WHERE LOWER(autor) LIKE LOWER(:autor) LIMIT 1")
+        result = await session.execute(query, {"autor": f"%{request}%"})
+        row = result.first()
+        if row:
+            return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+        return await super().handle(request, session)
+
+class CategoriaHandler(AbstractHandler):
+    async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
+        query = text("SELECT * FROM libro WHERE LOWER(categoria) LIKE LOWER(:categoria) LIMIT 1")
+        result = await session.execute(query, {"categoria": f"%{request}%"})
+        row = result.first()
+        if row:
+            return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+        return await super().handle(request, session)
+
+class AnioHandler(AbstractHandler):
+    async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
+        if request.isdigit():
+            query = text("SELECT * FROM libro WHERE anio_publicacion = :anio LIMIT 1")
+            result = await session.execute(query, {"anio": int(request)})
+            row = result.first()
+            if row:
+                return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+        return await super().handle(request, session)
 
 class DesignPatterns:
 
@@ -68,15 +129,45 @@ class DesignPatterns:
             return False
 
     # ---------- DECORATOR ----------
-    def aplicar_decorador_premium(self):
-        pass
-
-    def aplicar_decorador_gratuito(self):
-        pass
+    @staticmethod
+    def decorar_review(review, es_premium):
+        if es_premium:
+            return ReviewVerificadaDecorator(ReviewConcreto(review))
+        return ReviewConcreto(review)
 
     # ---------- CHAIN OF RESPONSIBILITY ----------
-    def manejar_busqueda_libros(self):
+    @staticmethod
+    async def busqueda_cadena_de_responsabilidad(session: AsyncSession, search_term: str) -> Optional[Libro]:
+        titulo_handler = TituloHandler()
+        autor_handler = AutorHandler()
+        categoria_handler = CategoriaHandler()
+        anio_handler = AnioHandler()
+
+        titulo_handler.set_next(autor_handler).set_next(categoria_handler).set_next(anio_handler)
+
+        return await titulo_handler.handle(search_term, session)
+
+# --- Decorator Implementation ---
+
+class ReviewComponent(abc.ABC):
+    @abc.abstractmethod
+    def mostrar(self):
         pass
 
-    def manejar_busqueda_usuarios(self):
-        pass
+class ReviewConcreto(ReviewComponent):
+    def __init__(self, review):
+        self._review = review
+
+    def mostrar(self):
+        return self._review.comentario
+
+class ReviewDecorator(ReviewComponent):
+    def __init__(self, review_component):
+        self._review_component = review_component
+
+    def mostrar(self):
+        return self._review_component.mostrar()
+
+class ReviewVerificadaDecorator(ReviewDecorator):
+    def mostrar(self):
+        return f"⭐ [Verificada] {self._review_component.mostrar()}"

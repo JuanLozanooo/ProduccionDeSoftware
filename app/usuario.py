@@ -2,6 +2,7 @@ from typing import Optional, List
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy import text
 from app.libro import Libro
+from app.design_patterns import DesignPatterns
 
 
 class Usuario:
@@ -79,38 +80,8 @@ class Usuario:
         """ Cierra la sesión del usuario. """
         return {"mensaje": "Sesión cerrada correctamente"}
 
-    async def buscar_libro(self, session: AsyncSession, titulo: Optional[str] = None,
-                           autor: Optional[str] = None, categoria: Optional[str] = None) -> Optional[Libro]:
-        clauses = []
-        params = {}
-        if titulo:
-            clauses.append("LOWER(titulo) LIKE LOWER(:titulo)")
-            params["titulo"] = f"%{titulo}%"
-        if autor:
-            clauses.append("LOWER(autor) LIKE LOWER(:autor)")
-            params["autor"] = f"%{autor}%"
-        if categoria:
-            clauses.append("LOWER(categoria) LIKE LOWER(:categoria)")
-            params["categoria"] = f"%{categoria}%"
-
-        where = ""
-        if clauses:
-            where = "WHERE " + " AND ".join(clauses)
-
-        query = text(
-            f"SELECT id_libro, titulo, autor, categoria, anio_publicacion FROM libro {where} ORDER BY id_libro LIMIT 1"
-        )
-        result = await session.execute(query, params)
-        row = result.first()
-        if not row:
-            return None
-        return Libro(
-            id_libro=row.id_libro,
-            titulo=row.titulo,
-            autor=row.autor,
-            categoria=row.categoria,
-            anio_publicacion=int(row.anio_publicacion),
-        )
+    async def buscar_libro(self, session: AsyncSession, search_term: str) -> Optional[Libro]:
+        return await DesignPatterns.busqueda_cadena_de_responsabilidad(session, search_term)
 
     async def cambiar_username(self, session: AsyncSession, nuevo_username: str) -> dict:
         """ Cambia el nombre de usuario. """

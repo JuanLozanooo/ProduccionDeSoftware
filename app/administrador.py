@@ -6,14 +6,17 @@ from app.usuario import Usuario
 from app.design_patterns import DesignPatterns
 
 class Administrador:
-    def __init__(self, id_admin: int, username: str, email: str, password: str):
+    def __init__(self, id_admin: int, username: str, email: str, password: str, rol: int):
         self.id_admin = id_admin
         self.username = username
         self.email = email
         self.password = password
+        self.rol = rol
 
     # Métodos CRUD para Usuario
     async def crear_usuario(self, session: AsyncSession, datos: Dict[str, Any]) -> Usuario:
+        if self.rol != 0:
+            raise PermissionError("Acceso denegado. Se requiere rol de administrador.")
         datos.setdefault("mes_suscripcion", 0)
         query = text(
             "INSERT INTO usuario (id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion) "
@@ -24,6 +27,9 @@ class Administrador:
         return Usuario(**datos)
 
     async def consultar_usuario(self, session: AsyncSession, id_usuario: int) -> Optional[Usuario]:
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return None
         query = text("SELECT id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion FROM usuario WHERE id_usuario = :id")
         result = await session.execute(query, {"id": id_usuario})
         row = result.first()
@@ -40,6 +46,9 @@ class Administrador:
         )
 
     async def actualizar_usuario(self, session: AsyncSession, id_usuario: int, campos: Dict[str, Any]) -> None:
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return
         sets = []
         params = {"id": id_usuario}
         for k, v in campos.items():
@@ -52,6 +61,9 @@ class Administrador:
         await session.commit()
 
     async def eliminar_usuario(self, session: AsyncSession, id_usuario: int) -> bool:
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return False
         # Memento: Guardar el estado del usuario antes de eliminarlo
         memento_creado = await DesignPatterns.crear_memento_usuario(session, id_usuario)
         
@@ -73,12 +85,17 @@ class Administrador:
             return False
 
     async def gestionar_estado_usuario(self, session: AsyncSession, id_usuario: int, activo: bool) -> None:
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return
         query = text("UPDATE usuario SET activo = :activo WHERE id_usuario = :id")
         await session.execute(query, {"id": id_usuario, "activo": activo})
         await session.commit()
 
     # Métodos CRUD para Libro
     async def crear_libro(self, session: AsyncSession, datos: Dict[str, Any]) -> Libro:
+        if self.rol != 0:
+            raise PermissionError("Acceso denegado. Se requiere rol de administrador.")
         datos.setdefault("sinopsis", "")
         query = text(
             "INSERT INTO libro (id_libro, titulo, autor, categoria, anio_publicacion, sinopsis) "
@@ -89,6 +106,9 @@ class Administrador:
         return Libro(**datos)
 
     async def consultar_libro(self, session: AsyncSession, id_libro: int) -> Optional[Libro]:
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return None
         query = text("SELECT id_libro, titulo, autor, categoria, anio_publicacion, sinopsis FROM libro WHERE id_libro = :id")
         result = await session.execute(query, {"id": id_libro})
         row = result.first()
@@ -104,6 +124,9 @@ class Administrador:
         )
 
     async def actualizar_libro(self, session: AsyncSession, id_libro: int, campos: Dict[str, Any]) -> None:
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return
         sets = []
         params = {"id": id_libro}
         for k, v in campos.items():
@@ -116,6 +139,9 @@ class Administrador:
         await session.commit()
 
     async def eliminar_libro(self, session: AsyncSession, id_libro: int) -> None:
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return
         query = text("DELETE FROM libro WHERE id_libro = :id")
         await session.execute(query, {"id": id_libro})
         await session.commit()
