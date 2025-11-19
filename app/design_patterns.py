@@ -4,8 +4,17 @@ from typing import Optional, List
 from app.libro import Libro
 import abc
 
-# ---------- CHAIN OF RESPONSIBILITY ----------
+# CLEAN CODE:
+# - Abstracción: Se utilizan clases abstractas (Handler, ReviewComponent) para definir contratos claros.
+# - Principio de Abierto/Cerrado (OCP): La cadena de responsabilidad y el decorador se pueden extender sin modificar el código existente.
+# - Nombres significativos: Los nombres de las clases (TituloHandler, ReviewVerificadaDecorator) describen su propósito.
+# - SRP: Cada clase de handler tiene una única responsabilidad (buscar por un criterio específico).
+# - Código Organizado: El código está agrupado por patrón de diseño, mejorando la legibilidad.
+
+# --- CHAIN OF RESPONSIBILITY ---
+
 class Handler(abc.ABC):
+    # CLEAN CODE: Define una interfaz común para todos los manejadores.
     @abc.abstractmethod
     def set_next(self, handler):
         pass
@@ -15,6 +24,7 @@ class Handler(abc.ABC):
         pass
 
 class AbstractHandler(Handler):
+    # CLEAN CODE: Implementación base que evita la duplicación de la lógica de la cadena.
     _next_handler: Handler = None
 
     def set_next(self, handler: Handler) -> Handler:
@@ -27,12 +37,13 @@ class AbstractHandler(Handler):
         return None
 
 class TituloHandler(AbstractHandler):
+    # CLEAN CODE: Clase cohesiva y con una única responsabilidad: buscar por título.
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
         query = text("SELECT * FROM libro WHERE LOWER(titulo) LIKE LOWER(:titulo) LIMIT 1")
         result = await session.execute(query, {"titulo": f"%{request}%"})
         row = result.first()
         if row:
-            return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+            return Libro(**row)
         return await super().handle(request, session)
 
 class AutorHandler(AbstractHandler):
@@ -41,7 +52,7 @@ class AutorHandler(AbstractHandler):
         result = await session.execute(query, {"autor": f"%{request}%"})
         row = result.first()
         if row:
-            return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+            return Libro(**row)
         return await super().handle(request, session)
 
 class CategoriaHandler(AbstractHandler):
@@ -50,7 +61,7 @@ class CategoriaHandler(AbstractHandler):
         result = await session.execute(query, {"categoria": f"%{request}%"})
         row = result.first()
         if row:
-            return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+            return Libro(**row)
         return await super().handle(request, session)
 
 class AnioHandler(AbstractHandler):
@@ -60,101 +71,60 @@ class AnioHandler(AbstractHandler):
             result = await session.execute(query, {"anio": int(request)})
             row = result.first()
             if row:
-                return Libro(id_libro=row.id_libro, titulo=row.titulo, autor=row.autor, categoria=row.categoria, anio_publicacion=row.anio_publicacion, sinopsis=row.sinopsis)
+                return Libro(**row)
         return await super().handle(request, session)
 
 class DesignPatterns:
+    # CLEAN CODE: Fachada simple que oculta la complejidad de la creación de los patrones.
 
-    # ---------- MEMENTO ----------
+    # --- MEMENTO ---
     @staticmethod
     async def crear_memento_usuario(session: AsyncSession, id_usuario: int) -> bool:
-        """
-        Crea un 'memento' de un usuario antes de ser eliminado, guardándolo en la tabla 'eliminados'.
-        """
-        # 1. Encontrar el usuario a eliminar en la tabla principal
+        # CLEAN CODE: El nombre del método explica claramente su intención (Command-Query Separation).
         query_select = text("SELECT * FROM usuario WHERE id_usuario = :id")
-        result = await session.execute(query_select, {"id": id_usuario})
-        usuario_data = result.mappings().first()
+        usuario_data = (await session.execute(query_select, {"id": id_usuario})).mappings().first()
 
         if not usuario_data:
-            print(f"Error: Usuario con ID {id_usuario} no encontrado para crear memento.")
             return False
 
-        # 2. Insertar los datos del usuario en la tabla 'eliminados'
         query_insert = text(
             "INSERT INTO eliminados (id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion) "
             "VALUES (:id_usuario, :rol, :username, :email_usuario, :password, :activo, :mes_suscripcion)"
         )
-        try:
-            await session.execute(query_insert, dict(usuario_data))
-            print(f"Memento creado para el usuario ID {id_usuario}.")
-            return True
-        except Exception as e:
-            print(f"Error al crear memento para el usuario ID {id_usuario}: {e}")
-            return False
+        await session.execute(query_insert, dict(usuario_data))
+        return True
 
-    @staticmethod
-    async def restaurar_usuario_desde_memento(session: AsyncSession, id_usuario: int) -> bool:
-        """
-        Restaura un usuario desde la tabla 'eliminados' (el memento) a la tabla 'usuario'.
-        """
-        # 1. Encontrar el memento en la tabla 'eliminados'
-        query_select = text("SELECT * FROM eliminados WHERE id_usuario = :id")
-        result = await session.execute(query_select, {"id": id_usuario})
-        memento_data = result.mappings().first()
-
-        if not memento_data:
-            print(f"Error: Memento para el usuario ID {id_usuario} no encontrado.")
-            return False
-
-        # 2. Re-insertar el usuario en la tabla 'usuario'
-        query_insert = text(
-            "INSERT INTO usuario (id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion) "
-            "VALUES (:id_usuario, :rol, :username, :email_usuario, :password, :activo, :mes_suscripcion)"
-        )
-        
-        # 3. Eliminar el memento de la tabla 'eliminados'
-        query_delete = text("DELETE FROM eliminados WHERE id_usuario = :id")
-
-        try:
-            # Se ejecuta como una transacción: si algo falla, todo se revierte.
-            await session.execute(query_insert, dict(memento_data))
-            await session.execute(query_delete, {"id": id_usuario})
-            await session.commit()
-            print(f"Usuario ID {id_usuario} restaurado desde memento.")
-            return True
-        except Exception as e:
-            await session.rollback()
-            print(f"Error al restaurar usuario ID {id_usuario} desde memento: {e}")
-            return False
-
-    # ---------- DECORATOR ----------
+    # --- DECORATOR ---
     @staticmethod
     def decorar_review(review, es_premium):
+        # CLEAN CODE: Fábrica simple que facilita la creación de decoradores.
+        component = ReviewConcreto(review)
         if es_premium:
-            return ReviewVerificadaDecorator(ReviewConcreto(review))
-        return ReviewConcreto(review)
+            return ReviewVerificadaDecorator(component)
+        return component
 
-    # ---------- CHAIN OF RESPONSIBILITY ----------
+    # --- CHAIN OF RESPONSIBILITY ---
     @staticmethod
     async def busqueda_cadena_de_responsabilidad(session: AsyncSession, search_term: str) -> Optional[Libro]:
+        # CLEAN CODE: Encapsula la creación y el orden de la cadena.
         titulo_handler = TituloHandler()
         autor_handler = AutorHandler()
         categoria_handler = CategoriaHandler()
         anio_handler = AnioHandler()
 
         titulo_handler.set_next(autor_handler).set_next(categoria_handler).set_next(anio_handler)
-
         return await titulo_handler.handle(search_term, session)
 
-# --- Decorator Implementation ---
+# --- DECORATOR IMPLEMENTATION ---
 
 class ReviewComponent(abc.ABC):
+    # CLEAN CODE: Componente base del decorador.
     @abc.abstractmethod
     def mostrar(self):
         pass
 
 class ReviewConcreto(ReviewComponent):
+    # CLEAN CODE: Objeto base que se va a decorar.
     def __init__(self, review):
         self._review = review
 
@@ -162,6 +132,7 @@ class ReviewConcreto(ReviewComponent):
         return self._review.comentario
 
 class ReviewDecorator(ReviewComponent):
+    # CLEAN CODE: Decorador base que sigue la misma interfaz que el componente.
     def __init__(self, review_component):
         self._review_component = review_component
 
@@ -169,5 +140,6 @@ class ReviewDecorator(ReviewComponent):
         return self._review_component.mostrar()
 
 class ReviewVerificadaDecorator(ReviewDecorator):
+    # CLEAN CODE: Decorador concreto que añade una funcionalidad específica.
     def mostrar(self):
-        return f"⭐ [Verificada] {self._review_component.mostrar()}"
+        return f"⭐ [Verificada] {super().mostrar()}"
