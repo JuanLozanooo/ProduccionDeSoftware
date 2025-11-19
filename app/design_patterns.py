@@ -39,8 +39,9 @@ class AbstractHandler(Handler):
 class TituloHandler(AbstractHandler):
     # CLEAN CODE: Clase cohesiva y con una única responsabilidad: buscar por título.
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
-        query = text("SELECT * FROM libro WHERE LOWER(titulo) LIKE LOWER(:titulo) LIMIT 1")
-        result = await session.execute(query, {"titulo": f"%{request}%"})
+        search_term = request.strip().lower()
+        query = text("SELECT * FROM libro WHERE LOWER(titulo) LIKE :titulo LIMIT 1")
+        result = await session.execute(query, {"titulo": f"%{search_term}%"})
         row = result.first()
         if row:
             return Libro(**row)
@@ -48,8 +49,9 @@ class TituloHandler(AbstractHandler):
 
 class AutorHandler(AbstractHandler):
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
-        query = text("SELECT * FROM libro WHERE LOWER(autor) LIKE LOWER(:autor) LIMIT 1")
-        result = await session.execute(query, {"autor": f"%{request}%"})
+        search_term = request.strip().lower()
+        query = text("SELECT * FROM libro WHERE LOWER(autor) LIKE :autor LIMIT 1")
+        result = await session.execute(query, {"autor": f"%{search_term}%"})
         row = result.first()
         if row:
             return Libro(**row)
@@ -57,8 +59,9 @@ class AutorHandler(AbstractHandler):
 
 class CategoriaHandler(AbstractHandler):
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
-        query = text("SELECT * FROM libro WHERE LOWER(categoria) LIKE LOWER(:categoria) LIMIT 1")
-        result = await session.execute(query, {"categoria": f"%{request}%"})
+        search_term = request.strip().lower()
+        query = text("SELECT * FROM libro WHERE LOWER(categoria) LIKE :categoria LIMIT 1")
+        result = await session.execute(query, {"categoria": f"%{search_term}%"})
         row = result.first()
         if row:
             return Libro(**row)
@@ -66,9 +69,10 @@ class CategoriaHandler(AbstractHandler):
 
 class AnioHandler(AbstractHandler):
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
-        if request.isdigit():
+        search_term = request.strip()
+        if search_term.isdigit():
             query = text("SELECT * FROM libro WHERE anio_publicacion = :anio LIMIT 1")
-            result = await session.execute(query, {"anio": int(request)})
+            result = await session.execute(query, {"anio": int(search_term)})
             row = result.first()
             if row:
                 return Libro(**row)
