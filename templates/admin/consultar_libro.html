@@ -21,20 +21,33 @@
         const id_libro = document.getElementById('id_libro').value;
         const response = await fetch(`/api/admin/consultar_libro/${id_libro}`);
         const data = await response.json();
-        let resultText = '';
+        const resultDiv = document.getElementById('result');
+
         if (response.ok) {
-            resultText = `
+            let reviewsHtml = '<h5>Reviews:</h5>';
+            if (data.reviews && data.reviews.length > 0) {
+                reviewsHtml += '<ul class="list-group">';
+                data.reviews.forEach(review => {
+                    reviewsHtml += `<li class="list-group-item">[${review.username}] ${review.comentario}</li>`;
+                });
+                reviewsHtml += '</ul>';
+            } else {
+                reviewsHtml += '<p>No hay reviews para este libro.</p>';
+            }
+
+            resultDiv.innerHTML = `
+                <h4>${data.titulo}</h4>
                 <p><strong>ID:</strong> ${data.id_libro}</p>
-                <p><strong>Título:</strong> ${data.titulo}</p>
                 <p><strong>Autor:</strong> ${data.autor}</p>
                 <p><strong>Categoría:</strong> ${data.categoria}</p>
                 <p><strong>Año:</strong> ${data.anio_publicacion}</p>
                 <p><strong>Sinopsis:</strong> ${data.sinopsis}</p>
+                <hr>
+                ${reviewsHtml}
             `;
         } else {
-            resultText = `<p class="text-danger">${data.detail}</p>`;
+            resultDiv.innerHTML = `<p class="text-danger">${data.detail}</p>`;
         }
-        document.getElementById('result').innerHTML = resultText;
     });
 </script>
 {% endblock %}

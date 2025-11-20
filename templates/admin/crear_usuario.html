@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Crear Nuevo Usuario</h2>
-    <form action="/api/admin/crear_usuario" method="post">
+    <form id="crearUsuarioForm">
         <div class="mb-3">
             <label for="username" class="form-label">Username</label>
             <input type="text" class="form-control" id="username" name="username" required>
@@ -28,5 +28,27 @@
         </div>
         <button type="submit" class="btn btn-primary">Crear Usuario</button>
     </form>
+    <div id="result" class="mt-4"></div>
 </div>
+
+<script>
+    document.getElementById('crearUsuarioForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const response = await fetch('/api/admin/crear_usuario', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        const resultDiv = document.getElementById('result');
+
+        if (response.ok) {
+            resultDiv.innerHTML = `<div class="alert alert-success">Usuario '${data.username}' creado exitosamente.</div>`;
+            form.reset(); // Limpiar el formulario
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger">${data.detail || 'Ocurrió un error al crear el usuario.'}</div>`;
+        }
+    });
+</script>
 {% endblock %}

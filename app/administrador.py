@@ -30,12 +30,19 @@ class Administrador:
             raise PermissionError("Acceso denegado. Se requiere rol de administrador.")
         
         datos.setdefault("mes_suscripcion", 0)
+        # The database should handle the ID generation. We use RETURNING to get the new ID.
         query = text(
-            "INSERT INTO usuario (id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion) "
-            "VALUES (:id_usuario, :rol, :username, :email_usuario, :password, :activo, :mes_suscripcion)"
+            """
+            INSERT INTO usuario (rol, username, email_usuario, password, activo, mes_suscripcion) 
+            VALUES (:rol, :username, :email_usuario, :password, :activo, :mes_suscripcion)
+            RETURNING id_usuario
+            """
         )
-        await session.execute(query, datos)
+        result = await session.execute(query, datos)
+        new_id = result.scalar_one()
         await session.commit()
+        
+        datos["id_usuario"] = new_id
         return Usuario(**datos)
 
     async def consultar_usuario(self, session: AsyncSession, id_usuario: int) -> Optional[Usuario]:
@@ -99,6 +106,14 @@ class Administrador:
             await session.rollback()
             print(f"Error al eliminar el usuario {id_usuario}: {e}")
             return False
+
+    async def restaurar_usuario(self, session: AsyncSession, id_usuario: int) -> bool:
+        # CLEAN CODE: Delega la lógica de restauración al patrón de diseño.
+        if self.rol != 0:
+            print("Acceso denegado. Se requiere rol de administrador.")
+            return False
+        
+        return await DesignPatterns.restaurar_usuario_desde_memento(session, id_usuario)
 
     async def gestionar_estado_usuario(self, session: AsyncSession, id_usuario: int, activo: bool) -> None:
         # CLEAN CODE: El nombre del método es específico y claro.

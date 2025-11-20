@@ -59,24 +59,12 @@ class Suscripcion:
     async def ver_estado_suscripcion(session: AsyncSession, usuario: "Usuario") -> Union[Dict[str, Any], str]:
         # CLEAN CODE: El método maneja diferentes casos (roles) de forma clara y estructurada.
         if usuario.rol == 0:
-            return {"tarifa": "Vitalicia", "vigente": True}
+            return {"estado": "Premium Vitalicia"}
         
         if usuario.rol == 1:
             return "No tienes una suscripción activa, pásate a Premium."
 
         if usuario.rol == 2:
-            query = text("SELECT mes_inicio, mes_fin, tarifa FROM suscripcion WHERE usuario_id = :uid ORDER BY id_suscripcion DESC LIMIT 1")
-            sub_data = (await session.execute(query, {"uid": usuario.id_usuario})).fetchone()
-
-            if not sub_data:
-                return "Error: Usuario Premium sin registro de suscripción."
-
-            mes_inicio, mes_fin, tarifa = sub_data
-            mes_actual = date.today().month
-            
-            # CLEAN CODE: La lógica para verificar si la suscripción está activa es clara y maneja el caso de fin de año.
-            activa = (mes_inicio <= mes_actual <= mes_fin) if mes_inicio <= mes_fin else (mes_actual >= mes_inicio or mes_actual <= mes_fin)
-
-            return {"tarifa": tarifa, "vigente": activa, "mes_inicio": mes_inicio, "mes_fin": mes_fin}
+            return {"estado": "Premium", "mes_suscripcion": usuario.mes_suscripcion}
         
         return "Rol de usuario no reconocido."

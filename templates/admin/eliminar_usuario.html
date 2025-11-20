@@ -1,36 +1,109 @@
 {% extends "base.html" %}
 
-{% block title %}Eliminar Usuario{% endblock %}
+{% block title %}Gestionar Usuarios{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <h2>Eliminar Usuario</h2>
-    <form id="eliminarForm">
-        <div class="mb-3">
-            <label for="id_usuario" class="form-label">ID de Usuario</label>
-            <input type="number" class="form-control" id="id_usuario" name="id_usuario" required>
+    <!-- Sección para Eliminar Usuario -->
+    <div class="card mb-5">
+        <div class="card-header">
+            <h3>Eliminar Usuario</h3>
         </div>
-        <button type="submit" class="btn btn-danger">Eliminar</button>
-    </form>
+        <div class="card-body">
+            <form id="searchUserForm">
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" id="id_usuario_search" placeholder="Buscar ID de usuario para eliminar" required>
+                    <button class="btn btn-primary" type="submit">Buscar</button>
+                </div>
+            </form>
+            <div id="delete-details" style="display: none;">
+                <h5>Usuario Encontrado:</h5>
+                <p><strong>ID:</strong> <span id="delete-id"></span></p>
+                <p><strong>Username:</strong> <span id="delete-username"></span></p>
+                <button id="deleteBtn" class="btn btn-danger">Eliminar Usuario</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección para Restaurar Usuario -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Restaurar Usuario</h3>
+        </div>
+        <div class="card-body">
+            <form id="restoreUserForm">
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" id="id_usuario_restore" name="id_usuario" placeholder="ID de usuario para restaurar" required>
+                    <button class="btn btn-success" type="submit">Restaurar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="result" class="mt-4"></div>
 </div>
 
 <script>
-    document.getElementById('eliminarForm').addEventListener('submit', async function(event) {
+    // --- Lógica para Eliminar ---
+    document.getElementById('searchUserForm').addEventListener('submit', async function(event) {
         event.preventDefault();
-        const id_usuario = document.getElementById('id_usuario').value;
-        if (confirm(`¿Estás seguro de que quieres eliminar al usuario con ID ${id_usuario}?`)) {
-            const response = await fetch(`/api/admin/eliminar_usuario/${id_usuario}`, {
+        const userId = document.getElementById('id_usuario_search').value;
+        const resultDiv = document.getElementById('result');
+        const deleteDetails = document.getElementById('delete-details');
+
+        const response = await fetch(`/api/admin/consultar_usuario/${userId}`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('delete-id').textContent = data.id_usuario;
+            document.getElementById('delete-username').textContent = data.username;
+            deleteDetails.style.display = 'block';
+            resultDiv.innerHTML = '';
+        } else {
+            deleteDetails.style.display = 'none';
+            resultDiv.innerHTML = `<div class="alert alert-warning">Usuario no encontrado.</div>`;
+        }
+    });
+
+    document.getElementById('deleteBtn').addEventListener('click', async function() {
+        const userId = document.getElementById('delete-id').textContent;
+        const username = document.getElementById('delete-username').textContent;
+        const resultDiv = document.getElementById('result');
+
+        if (confirm(`¿Estás seguro de que quieres eliminar al usuario '${username}' (ID: ${userId})?`)) {
+            const response = await fetch(`/api/admin/eliminar_usuario/${userId}`, {
                 method: 'DELETE'
             });
-            const data = await response.json();
-            let resultText = '';
+            
             if (response.ok) {
-                resultText = `<p class="text-success">${data.mensaje}</p>`;
+                resultDiv.innerHTML = `<div class="alert alert-success">Usuario '${username}' eliminado exitosamente.</div>`;
+                document.getElementById('delete-details').style.display = 'none';
             } else {
-                resultText = `<p class="text-danger">${data.detail}</p>`;
+                const errorData = await response.json();
+                resultDiv.innerHTML = `<div class="alert alert-danger">${errorData.detail || 'Ocurrió un error.'}</div>`;
             }
-            document.getElementById('result').innerHTML = resultText;
+        }
+    });
+
+    // --- Lógica para Restaurar ---
+    document.getElementById('restoreUserForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const resultDiv = document.getElementById('result');
+
+        const response = await fetch('/api/admin/restaurar_usuario', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            resultDiv.innerHTML = `<div class="alert alert-success">${data.mensaje}</div>`;
+            form.reset();
+        } else {
+            const errorData = await response.json();
+            resultDiv.innerHTML = `<div class="alert alert-danger">${errorData.detail || 'Ocurrió un error.'}</div>`;
         }
     });
 </script>

@@ -5,40 +5,107 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Actualizar Usuario</h2>
-    <form id="actualizarForm">
-        <div class="mb-3">
-            <label for="id_usuario" class="form-label">ID de Usuario</label>
-            <input type="number" class="form-control" id="id_usuario" name="id_usuario" required>
+
+    <!-- 1. Formulario de Búsqueda -->
+    <form id="searchUserForm" class="mb-4">
+        <div class="input-group">
+            <input type="number" class="form-control" id="id_usuario_search" placeholder="Introduce el ID del usuario" required>
+            <button class="btn btn-primary" type="submit">Buscar Usuario</button>
         </div>
-        <div class="mb-3">
-            <label for="campos" class="form-label">Campos a Actualizar (JSON)</label>
-            <textarea class="form-control" id="campos" name="campos" rows="3" required placeholder='{"username": "nuevo_nombre", "email_usuario": "nuevo@email.com"}'></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Actualizar</button>
     </form>
+
+    <!-- 2. Formulario de Edición (inicialmente oculto) -->
+    <div id="editUserContainer" style="display: none;">
+        <h4>Editando Usuario</h4>
+        <form id="editUserForm">
+            <input type="hidden" id="id_usuario_edit" name="id_usuario">
+            
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username">
+            </div>
+            <div class="mb-3">
+                <label for="email_usuario" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email_usuario" name="email_usuario">
+            </div>
+            <div class="mb-3">
+                <label for="rol" class="form-label">Rol</label>
+                <select class="form-select" id="rol" name="rol">
+                    <option value="0">Administrador</option>
+                    <option value="1">Gratuito</option>
+                    <option value="2">Premium</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="activo" class="form-label">Estado</label>
+                <select class="form-select" id="activo" name="activo">
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Guardar Cambios</button>
+        </form>
+    </div>
+
     <div id="result" class="mt-4"></div>
 </div>
 
 <script>
-    document.getElementById('actualizarForm').addEventListener('submit', async function(event) {
+    // Manejar la búsqueda del usuario
+    document.getElementById('searchUserForm').addEventListener('submit', async function(event) {
         event.preventDefault();
-        const id_usuario = document.getElementById('id_usuario').value;
-        const campos = document.getElementById('campos').value;
-        const response = await fetch(`/api/admin/actualizar_usuario/${id_usuario}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: campos
-        });
-        const data = await response.json();
-        let resultText = '';
+        const userId = document.getElementById('id_usuario_search').value;
+        const resultDiv = document.getElementById('result');
+        const editContainer = document.getElementById('editUserContainer');
+        
+        const response = await fetch(`/api/admin/consultar_usuario/${userId}`);
+        
         if (response.ok) {
-            resultText = `<p class="text-success">${data.mensaje}</p>`;
+            const data = await response.json();
+            
+            // Rellenar el formulario de edición
+            document.getElementById('id_usuario_edit').value = data.id_usuario;
+            document.getElementById('username').value = data.username;
+            document.getElementById('email_usuario').value = data.email_usuario;
+            document.getElementById('rol').value = data.rol;
+            document.getElementById('activo').value = data.activo.toString();
+
+            // Mostrar el formulario de edición y ocultar mensajes anteriores
+            editContainer.style.display = 'block';
+            resultDiv.innerHTML = '';
         } else {
-            resultText = `<p class="text-danger">${data.detail}</p>`;
+            editContainer.style.display = 'none';
+            resultDiv.innerHTML = `<div class="alert alert-danger">Usuario no encontrado.</div>`;
         }
-        document.getElementById('result').innerHTML = resultText;
+    });
+
+    // Manejar la actualización del usuario
+    document.getElementById('editUserForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const userId = formData.get('id_usuario');
+        const resultDiv = document.getElementById('result');
+
+        // Filtrar campos vacíos
+        const filteredFormData = new FormData();
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                filteredFormData.append(key, value);
+            }
+        }
+
+        const response = await fetch(`/api/admin/actualizar_usuario/${userId}`, {
+            method: 'PATCH',
+            body: filteredFormData
+        });
+
+        if (response.ok) {
+            resultDiv.innerHTML = `<div class="alert alert-success">Usuario actualizado correctamente.</div>`;
+        } else {
+            const errorData = await response.json();
+            resultDiv.innerHTML = `<div class="alert alert-danger">${errorData.detail || 'Ocurrió un error.'}</div>`;
+        }
     });
 </script>
 {% endblock %}

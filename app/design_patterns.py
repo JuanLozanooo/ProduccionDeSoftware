@@ -107,11 +107,34 @@ class DesignPatterns:
             return False
 
         query_insert = text(
-            "INSERT INTO eliminados (id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion) "
+            "INSERT INTO eliminado (id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion) "
             "VALUES (:id_usuario, :rol, :username, :email_usuario, :password, :activo, :mes_suscripcion)"
         )
         await session.execute(query_insert, dict(usuario_data))
         return True
+
+    @staticmethod
+    async def restaurar_usuario_desde_memento(session: AsyncSession, id_usuario: int) -> bool:
+        query_select = text("SELECT * FROM eliminado WHERE id_usuario = :id")
+        memento_data = (await session.execute(query_select, {"id": id_usuario})).mappings().first()
+
+        if not memento_data:
+            return False
+
+        query_insert = text(
+            "INSERT INTO usuario (id_usuario, rol, username, email_usuario, password, activo, mes_suscripcion) "
+            "VALUES (:id_usuario, :rol, :username, :email_usuario, :password, :activo, :mes_suscripcion)"
+        )
+        query_delete = text("DELETE FROM eliminado WHERE id_usuario = :id")
+
+        try:
+            await session.execute(query_insert, dict(memento_data))
+            await session.execute(query_delete, {"id": id_usuario})
+            await session.commit()
+            return True
+        except Exception:
+            await session.rollback()
+            return False
 
     # --- DECORATOR ---
     @staticmethod

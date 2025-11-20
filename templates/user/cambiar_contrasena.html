@@ -5,13 +5,15 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Cambiar Contraseña</h2>
-    <form id="changePasswordForm">
-        <div class="mb-3">
-            <label for="nueva_contrasena" class="form-label">Nueva Contraseña</label>
-            <input type="password" class="form-control" id="nueva_contrasena" name="nueva_contrasena" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Cambiar</button>
-    </form>
+    <div id="form-container">
+        <form id="changePasswordForm">
+            <div class="mb-3">
+                <label for="nueva_contrasena" class="form-label">Nueva Contraseña</label>
+                <input type="password" class="form-control" id="nueva_contrasena" name="nueva_contrasena" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Cambiar</button>
+        </form>
+    </div>
     <div id="result" class="mt-4"></div>
 </div>
 
@@ -28,8 +30,15 @@
         });
         const data = await response.json();
         if (response.ok && data.contrasena_actualizada) {
-            // Redirect to login with a success message
-            window.location.href = "/?message=Su+contraseña+ha+sido+cambiada.+Por+favor,+inicie+sesión+de+nuevo.";
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('result').innerHTML = `
+                <div class="alert alert-success" role="alert">
+                    <h4 class="alert-heading">¡Contraseña Cambiada!</h4>
+                    <p>Por tu seguridad, es necesario que vuelvas a iniciar sesión.</p>
+                    <hr>
+                    <a href="/login" class="btn btn-primary">Ir a Iniciar Sesión</a>
+                </div>
+            `;
         } else {
             document.getElementById('result').innerHTML = `<p class="text-danger">${data.detail || 'Ocurrió un error.'}</p>`;
         }
