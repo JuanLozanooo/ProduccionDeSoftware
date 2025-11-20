@@ -27,13 +27,12 @@
             body: `nueva_contrasena=${nueva_contrasena}`
         });
         const data = await response.json();
-        let resultText = '';
-        if (response.ok) {
-            resultText = `<p class="text-success">Contraseña actualizada correctamente.</p>`;
+        if (response.ok && data.contrasena_actualizada) {
+            // Redirect to login with a success message
+            window.location.href = "/?message=Su+contraseña+ha+sido+cambiada.+Por+favor,+inicie+sesión+de+nuevo.";
         } else {
-            resultText = `<p class="text-danger">${data.detail}</p>`;
+            document.getElementById('result').innerHTML = `<p class="text-danger">${data.detail || 'Ocurrió un error.'}</p>`;
         }
-        document.getElementById('result').innerHTML = resultText;
     });
 </script>
 {% endblock %}

@@ -54,7 +54,9 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     if usuario_actual is None:
-        return templates.TemplateResponse("login.html", {"request": request})
+        # Check for a message from the password change
+        success_message = request.query_params.get("message", None)
+        return templates.TemplateResponse("login.html", {"request": request, "success": success_message})
     return templates.TemplateResponse("home.html", {"request": request, "usuario": usuario_actual})
 
 @app.post("/login", response_class=HTMLResponse)
@@ -263,7 +265,11 @@ async def api_cambiar_username(request: Request, nuevo_username: str = Form(...)
 @app.post("/api/user/cambiar_contrasena", tags=["Usuario"])
 @role_required(allowed_roles=[0, 1, 2])
 async def api_cambiar_contrasena(request: Request, nueva_contrasena: str = Form(...), session: AsyncSession = Depends(get_session)):
-    return await usuario_actual.cambiar_contrasena(session, nueva_contrasena)
+    global usuario_actual
+    result = await usuario_actual.cambiar_contrasena(session, nueva_contrasena)
+    if result.get("contrasena_actualizada"):
+        usuario_actual = None  # Logout
+    return result
 
 @app.get("/api/gratuito/leer_fragmento_libro/{id_libro}", tags=["Gratuito"])
 @role_required(allowed_roles=[1])

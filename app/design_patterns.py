@@ -40,9 +40,14 @@ class TituloHandler(AbstractHandler):
     # CLEAN CODE: Clase cohesiva y con una única responsabilidad: buscar por título.
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
         search_term = request.strip().lower()
-        query = text("SELECT * FROM libro WHERE LOWER(titulo) LIKE :titulo LIMIT 1")
-        result = await session.execute(query, {"titulo": f"%{search_term}%"})
-        row = result.first()
+        query = text("""
+            SELECT id_libro, titulo, autor, categoria, anio_publicacion, sinopsis
+            FROM libro 
+            WHERE similarity(titulo, :search_term) > 0.1 
+            ORDER BY similarity(titulo, :search_term) DESC LIMIT 1
+        """)
+        result = await session.execute(query, {"search_term": search_term})
+        row = result.mappings().first()
         if row:
             return Libro(**row)
         return await super().handle(request, session)
@@ -50,9 +55,14 @@ class TituloHandler(AbstractHandler):
 class AutorHandler(AbstractHandler):
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
         search_term = request.strip().lower()
-        query = text("SELECT * FROM libro WHERE LOWER(autor) LIKE :autor LIMIT 1")
-        result = await session.execute(query, {"autor": f"%{search_term}%"})
-        row = result.first()
+        query = text("""
+            SELECT id_libro, titulo, autor, categoria, anio_publicacion, sinopsis
+            FROM libro 
+            WHERE similarity(autor, :search_term) > 0.1 
+            ORDER BY similarity(autor, :search_term) DESC LIMIT 1
+        """)
+        result = await session.execute(query, {"search_term": search_term})
+        row = result.mappings().first()
         if row:
             return Libro(**row)
         return await super().handle(request, session)
@@ -60,9 +70,14 @@ class AutorHandler(AbstractHandler):
 class CategoriaHandler(AbstractHandler):
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
         search_term = request.strip().lower()
-        query = text("SELECT * FROM libro WHERE LOWER(categoria) LIKE :categoria LIMIT 1")
-        result = await session.execute(query, {"categoria": f"%{search_term}%"})
-        row = result.first()
+        query = text("""
+            SELECT id_libro, titulo, autor, categoria, anio_publicacion, sinopsis
+            FROM libro 
+            WHERE similarity(categoria, :search_term) > 0.1 
+            ORDER BY similarity(categoria, :search_term) DESC LIMIT 1
+        """)
+        result = await session.execute(query, {"search_term": search_term})
+        row = result.mappings().first()
         if row:
             return Libro(**row)
         return await super().handle(request, session)
@@ -71,9 +86,9 @@ class AnioHandler(AbstractHandler):
     async def handle(self, request: str, session: AsyncSession) -> Optional[Libro]:
         search_term = request.strip()
         if search_term.isdigit():
-            query = text("SELECT * FROM libro WHERE anio_publicacion = :anio LIMIT 1")
+            query = text("SELECT id_libro, titulo, autor, categoria, anio_publicacion, sinopsis FROM libro WHERE anio_publicacion = :anio LIMIT 1")
             result = await session.execute(query, {"anio": int(search_term)})
-            row = result.first()
+            row = result.mappings().first()
             if row:
                 return Libro(**row)
         return await super().handle(request, session)
